@@ -5,11 +5,11 @@ on:
       topic:
         description: "Short topic (optional)"
         required: false
-        default: "PS5 game update troubleshooting"
+        default: "PS5 controller not connecting? Try this reset"
       script:
         description: "English narration (optional)"
         required: false
-        default: "Game update stuck on your PlayStation 5? First, check your free storage space. Open Settings, then Storage, then Console Storage. Remove a game you no longer use, but keep your saved data. Restart the console and try the update again. Follow Vice City Intel for more gaming tips!"
+        default: "PS5 controller not connecting? Here is a quick fix. First, turn off your PlayStation 5. Find the tiny reset hole on the back of your DualSense controller, next to the Sony logo. Hold the reset button with a pin for at least five seconds. Then connect the controller to your PS5 using its USB cable and press the PS button. Follow Vice City Intel for more gaming tips."
 permissions:
   contents: read
 jobs:
