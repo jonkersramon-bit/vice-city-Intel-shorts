@@ -14,6 +14,11 @@ on:
         description: 'Six mission-matched timestamps in seconds, comma-separated (optional)'
         required: false
         default: ''
+      reuse_permission_confirmed:
+        description: "Confirm that you have checked reuse rights for the gameplay source"
+        type: boolean
+        required: true
+        default: false
       gameplay_credit:
         description: "Original creator credit for this gameplay (optional)"
         required: false
@@ -44,8 +49,13 @@ jobs:
         env:
           GAMEPLAY_URL: ${{ inputs.gameplay_url }}
           GAMEPLAY_CREDIT: ${{ inputs.gameplay_credit }}
+          REUSE_PERMISSION: ${{ inputs.reuse_permission_confirmed }}
         run: |
           mkdir -p assets output
+          if [ "$REUSE_PERMISSION" != "true" ]; then
+            echo "::error::Confirm gameplay reuse permission before building a public Short."
+            exit 1
+          fi
           if [ -n "$GAMEPLAY_URL" ]; then
             if [ -z "$GAMEPLAY_CREDIT" ]; then
               echo "::error::A third-party gameplay URL requires a creator credit and verified reuse permission."
