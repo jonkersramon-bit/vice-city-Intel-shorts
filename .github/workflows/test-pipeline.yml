@@ -42,6 +42,22 @@ jobs:
           test -s output/scene_review.jpg
           ffprobe -v error -select_streams v:0 -show_entries stream=codec_type -of csv=p=0 output/vice_city_intel.mp4 | grep -q video
           ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of csv=p=0 output/vice_city_intel.mp4 | grep -q audio
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          p=Path("output/vice_city_intel.mp4")
+          info=json.loads(subprocess.check_output(["ffprobe","-v","error","-show_streams","-show_format","-of","json",str(p)]))
+          video=next(s for s in info["streams"] if s["codec_type"]=="video")
+          audio=next(s for s in info["streams"] if s["codec_type"]=="audio")
+          duration=float(info["format"]["duration"])
+          assert (video["width"],video["height"])==(720,1280), "Incorrect Shorts dimensions"
+          assert 5<=duration<=60, f"Invalid video length: {duration}"
+          assert abs(float(audio.get("duration",duration))-duration)<1.5, "Narration/video length mismatch"
+          captions=Path("output/captions.ass").read_text(encoding="utf-8")
+          assert captions.count("Dialogue: 1,")>=2, "Missing timed captions"
+          assert "VICE CITY INTEL" in captions, "Missing channel branding"
+          print(f"Verified: 720x1280, {duration:.2f}s, audio and timed captions")
+          PY
       - name: Upload test storyboard only
         uses: actions/upload-artifact@v7
         with:
