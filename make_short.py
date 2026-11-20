@@ -74,6 +74,34 @@ def draw_procedural(i):
             d.line((x,horizon-210,x+int(105*math.cos(angle)),horizon-210+int(60*math.sin(angle))),fill=(10,11,36,255),width=12)
     return im.filter(ImageFilter.GaussianBlur(.5))
 
+
+def draw_mission_diagram(im,i):
+    """Original illustrative mission visuals, not actual gameplay screenshots."""
+    d=ImageDraw.Draw(im,"RGBA")
+    cyan=(34,235,255,255); pink=(255,56,182,255)
+    labels=[("MISSION GUIDE","FIND THE ROUTE"),("SIDE ENTRANCE","CHECK THE PERIMETER"),("ROOFTOP ACCESS","LOOK FOR A WAY UP"),("FIND THE CAR","CHECK THE OBJECTIVE"),("VEHICLE ACCESS","FOLLOW THE PROMPT"),("ESCAPE ROUTE","GET AWAY SAFELY")]
+    title,subtitle=labels[i%len(labels)]
+    d.rounded_rectangle((45,330,675,790),radius=25,fill=(8,8,29,225),outline=pink if i%2 else cyan,width=5)
+    d.text((360,392),title,font=font,anchor="mm",fill="white")
+    d.text((360,744),subtitle,font=fontsmall,anchor="mm",fill=cyan)
+    if i%3==0:
+        d.rounded_rectangle((172,550,550,650),radius=25,fill=(30,30,76,255),outline=pink,width=6)
+        d.polygon([(245,550),(290,495),(432,495),(485,550)],fill=(16,44,79,255))
+        for x in (245,475):
+            d.ellipse((x-38,623,x+38,699),fill=(10,9,25,255),outline=cyan,width=5)
+    elif i%3==1:
+        for x in range(190,550,40):d.line([(x,510),(x,675)],fill=cyan,width=6)
+        for y in (510,675):d.line([(180,y),(555,y)],fill=pink,width=8)
+        d.line([(220,700),(440,700),(440,610)],fill="white",width=10)
+        d.polygon([(440,597),(423,623),(457,623)],fill=pink)
+    else:
+        d.rectangle((185,505,540,540),fill=pink)
+        for x in (290,365):d.line([(x,540),(x,690)],fill=cyan,width=9)
+        for y in range(560,690,26):d.line([(290,y),(365,y)],fill="white",width=6)
+        d.line([(405,672),(493,575)],fill=pink,width=11)
+        d.polygon([(499,568),(470,581),(492,602)],fill=pink)
+    return im
+
 assets=sorted([p for p in (ROOT/"assets").glob("*") if p.suffix.lower() in (".png",".jpg",".jpeg",".webp")]) if (ROOT/"assets").exists() else []
 sentences=[s.strip() for s in re.split(r"(?<=[.!?])\s+",script) if s.strip()]
 n=max(4,min(6,len(sentences)))
@@ -87,7 +115,7 @@ for i in range(n):
         x=(im.width-W)//2;y=(im.height-H)//2
         im=im.crop((x,y,x+W,y+H))
     else:
-        im=draw_procedural(i)
+        im=draw_mission_diagram(draw_procedural(i),i)
     im.save(OUT/f"scene_{i:02}.png")
 
 def stamp(sec):
