@@ -345,5 +345,5 @@ for i in range(1,n):
 filters.append(f"[{last}]ass={ass.as_posix()},drawbox=x=0:y=0:w=720:h=8:color=0xff39be:t=fill,drawbox=x=0:y=1272:w=720:h=8:color=0x23e6ff:t=fill[vout]")
 cmd+=["-filter_complex",";".join(filters),"-map","[vout]","-map",f"{n}:a:0","-t",str(duration),"-c:v","libx264","-preset","veryfast","-crf","21","-r","30","-c:a","aac","-b:a","160k","-movflags","+faststart",str(OUT/"vice_city_intel.mp4")]
 subprocess.run(cmd,check=True)
-(OUT/"youtube.txt").write_text(f"{topic} 🎮 #Shorts\n\n{script}\n\nGameplay: Jason's Video Games Source — https://www.youtube.com/@JasonsVideoGamesSource. Verify mission steps before publishing.\n#GTA6 #ViceCityIntel #GamingTips #Shorts\n",encoding="utf-8")
+(OUT/"youtube.txt").write_text(f"{topic} 🎮 #Shorts\n\n{script}\n\nGameplay: @JasonsVideoGamesSource\n#GTA6 #ViceCityIntel #GamingTips #Shorts\n",encoding="utf-8")
 print("Created",OUT/"vice_city_intel.mp4",f"duration={duration:.1f}s",f"words={len(word_events)}",f"images={len(assets)}")
