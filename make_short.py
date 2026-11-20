@@ -197,6 +197,15 @@ def fetch_licensed_city_photos():
 assets=sorted([p for p in (ROOT/"assets").glob("*") if p.suffix.lower() in (".png",".jpg",".jpeg",".webp")]) if (ROOT/"assets").exists() else []
 if not assets:
     assets=fetch_licensed_city_photos()
+# Reject duplicate images even when manually supplied in assets/.
+# A simple pixel signature also catches byte-identical images in different formats.
+seen_visuals=set()
+for visual in assets[:6]:
+    with Image.open(visual) as probe:
+        signature=tuple(probe.convert("RGB").resize((24,24)).tobytes())
+    if signature in seen_visuals:
+        raise RuntimeError("Duplicate image detected: "+str(visual))
+    seen_visuals.add(signature)
 if len(assets)<6:
     raise RuntimeError("Not enough licensed cinematic photographs. Add at least six unique portrait images in assets/ or retry Wikimedia Commons. Refusing to publish placeholder illustrations.")
 sentences=[s.strip() for s in re.split(r"(?<=[.!?])\s+",script) if s.strip()]
