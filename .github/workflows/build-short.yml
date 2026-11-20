@@ -26,11 +26,20 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg fonts-dejavu-core
           python -m pip install --disable-pip-version-check edge-tts pillow
+      - name: Validate Python script
+        run: python -m py_compile make_short.py
       - name: Generate narration and video
         env:
           SHORT_TOPIC: ${{ inputs.topic }}
           SHORT_SCRIPT: ${{ inputs.script }}
         run: python make_short.py
+      - name: Verify MP4 and subtitles
+        run: |
+          test -s output/vice_city_intel.mp4
+          test -s output/captions.ass
+          ffprobe -v error -show_entries stream=codec_type -of csv=p=0 output/vice_city_intel.mp4 | grep -q video
+          ffprobe -v error -show_entries stream=codec_type -of csv=p=0 output/vice_city_intel.mp4 | grep -q audio
+          python -c "from pathlib import Path; s=Path('output/captions.ass').read_text(); assert 'Dialogue: 1' in s; assert not any('\\\\n' in x for x in s.splitlines() if x.startswith('Dialogue:'))"
       - name: Upload finished MP4
         uses: actions/upload-artifact@v4
         with:
