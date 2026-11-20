@@ -225,6 +225,8 @@ if gameplay_file.is_file():
         raise RuntimeError("Gameplay clip must be at least 12 seconds.")
     if scene_times and max(scene_times)>source_duration-2:
         raise RuntimeError("A selected scene timestamp exceeds the playable video duration")
+    if scene_times and any(scene_times[i+1] <= scene_times[i] for i in range(5)):
+        raise RuntimeError("SCENE_TIMES must be six strictly increasing timestamps")
     if os.getenv("MISSION_MODE","1")=="1" and not scene_times:
         raise RuntimeError("Mission guide requires six reviewed SCENE_TIMES. Automatic random excerpts can misrepresent mission steps.")
     for idx in range(6):
@@ -353,7 +355,8 @@ cmd=["ffmpeg","-y","-loglevel","error"]
 for i in range(n):
     if gameplay_file.is_file():
         excerpt=scene_times[i] if scene_times else source_duration*(i+0.25)/n
-        excerpt=min(excerpt,max(0,source_duration-scene_duration-0.5))
+        if excerpt+scene_duration+0.35>source_duration:
+            raise RuntimeError(f"Scene {i+1} starts too late for its narration; choose an earlier timestamp")
         cmd+=["-ss",f"{excerpt:.3f}","-t",str(scene_duration+0.5),"-i",str(gameplay_file)]
     else:
         cmd+=["-loop","1","-framerate","30","-t",str(scene_duration+.4),"-i",str(OUT/f"scene_{i:02}.png")]
