@@ -204,6 +204,15 @@ def fetch_licensed_city_photos():
     return sorted(directory.glob("photo_*.jpg"))
 
 assets=sorted([p for p in (ROOT/"assets").glob("*") if p.suffix.lower() in (".png",".jpg",".jpeg",".webp")]) if (ROOT/"assets").exists() else []
+# Mission guides must show actual relevant footage or deliberately selected screenshots.
+# Do not silently substitute unrelated Miami photography.
+mission_mode=os.getenv("MISSION_MODE","1")=="1"
+if not assets and mission_mode:
+    raise RuntimeError(
+        "MISSION ASSETS REQUIRED: Add 4-6 relevant, rights-cleared mission screenshots "
+        "to assets/ before building. Generic Miami stock images are not valid mission guidance. "
+        "Also verify mission name and steps against gameplay before publishing."
+    )
 if not assets:
     assets=fetch_licensed_city_photos()
 # Reject duplicate images even when manually supplied in assets/.
@@ -216,7 +225,7 @@ for visual in assets[:6]:
         raise RuntimeError("Duplicate image detected: "+str(visual))
     seen_visuals.add(signature)
 if len(assets)<4:
-    raise RuntimeError("Not enough licensed cinematic photographs. Add at least four unique images in assets/ or retry Wikimedia Commons. Refusing to publish placeholder illustrations.")
+    raise RuntimeError("At least four distinct, relevant scene images are required. No placeholder visuals will be published.")
 sentences=[s.strip() for s in re.split(r"(?<=[.!?])\s+",script) if s.strip()]
 n=min(6,len(assets))
 scene_duration=(duration+0.35*(n-1))/n
@@ -314,5 +323,5 @@ for i in range(1,n):
 filters.append(f"[{last}]ass={ass.as_posix()},drawbox=x=0:y=0:w=720:h=8:color=0xff39be:t=fill,drawbox=x=0:y=1272:w=720:h=8:color=0x23e6ff:t=fill[vout]")
 cmd+=["-filter_complex",";".join(filters),"-map","[vout]","-map",f"{n}:a:0","-t",str(duration),"-c:v","libx264","-preset","veryfast","-crf","21","-r","30","-c:a","aac","-b:a","160k","-movflags","+faststart",str(OUT/"vice_city_intel.mp4")]
 subprocess.run(cmd,check=True)
-(OUT/"youtube.txt").write_text(f"{topic} 🎮 #Shorts\n\n{script}\n\nIllustrative visuals; not gameplay footage.\n#GTA6 #ViceCityIntel #GamingTips #Shorts\n",encoding="utf-8")
+(OUT/"youtube.txt").write_text(f"{topic} 🎮 #Shorts\n\n{script}\n\nMission footage/screenshots supplied by creator; verify game steps before publishing.\n#GTA6 #ViceCityIntel #GamingTips #Shorts\n",encoding="utf-8")
 print("Created",OUT/"vice_city_intel.mp4",f"duration={duration:.1f}s",f"words={len(word_events)}",f"images={len(assets)}")
