@@ -102,7 +102,7 @@ PlayResY: 1280
 WrapStyle: 2
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Captions,DejaVu Sans,32,&H00FFFFFF,&H000000FF,&H004B1545,&H950A0622,1,0,0,0,100,100,0,0,1,3,1,2,45,45,225,1
+Style: Captions,DejaVu Sans,30,&H00FFFFFF,&H000000FF,&H004B1545,&H950A0622,1,0,0,0,100,100,0,0,1,3,1,2,45,45,225,1
 Style: Brand,DejaVu Sans,35,&H00FFE829,&H000000FF,&H00300B25,&H00000000,1,0,0,0,100,100,0,0,1,2,0,8,30,30,70,1
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -132,9 +132,29 @@ with ass.open("w",encoding="utf-8") as f:
             caption=r"\N".join(rows)
             f.write(f"Dialogue: 1,{stamp(start)},{stamp(end)},Captions,,0,0,0,,{caption}\n")
     else:
-        # Rare fallback if provider does not send word boundaries.
-        for i,s in enumerate(sentences):
-            f.write(f"Dialogue: 1,{stamp(duration*i/len(sentences))},{stamp(duration*(i+1)/len(sentences))},Captions,,0,0,0,,{s.upper()[:40]}\n")
+        # Provider sometimes omits WordBoundary events. Never truncate text.
+        # Split the complete narration into short, word-safe captions.
+        tokens=script.split()
+        groups=[tokens[i:i+4] for i in range(0,len(tokens),4)]
+        total=sum(len(g) for g in groups)
+        cursor=0.0
+        for group in groups:
+            span=duration*len(group)/total
+            text=" ".join(group).upper().replace("{","").replace("}","")
+            rows=[]
+            row=""
+            for word in text.split():
+                candidate=(row+" "+word).strip()
+                if len(candidate)>20 and row:
+                    rows.append(row)
+                    row=word
+                else:
+                    row=candidate
+            if row:
+                rows.append(row)
+            caption=r"\\N".join(rows)
+            f.write(f"Dialogue: 1,{stamp(cursor)},{stamp(cursor+span)},Captions,,0,0,0,,{caption}\\n")
+            cursor+=span
 
 # Each scene is gently zoomed; transitions are short crossfades.
 cmd=["ffmpeg","-y","-loglevel","error"]
