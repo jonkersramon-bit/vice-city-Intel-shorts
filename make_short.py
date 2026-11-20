@@ -270,7 +270,7 @@ if gameplay_file.is_file():
         target=ROOT/"assets"/f"gameplay_frame_{idx:02}.jpg"
         subprocess.run(["ffmpeg","-y","-loglevel","error","-ss",f"{position:.2f}",
             "-i",str(gameplay_file),"-frames:v","1","-q:v","2",str(target)],check=True)
-assets=sorted([p for p in (ROOT/"assets").glob("*") if p.suffix.lower() in (".png",".jpg",".jpeg",".webp")]) if (ROOT/"assets").exists() else []
+assets=([ROOT/"assets"/f"gameplay_frame_{idx:02}.jpg" for idx in range(6)] if gameplay_file.is_file() else sorted([p for p in (ROOT/"assets").glob("*") if p.suffix.lower() in (".png",".jpg",".jpeg",".webp")]) if (ROOT/"assets").exists() else [])
 # Mission guides must show actual relevant footage or deliberately selected screenshots.
 # Do not silently substitute unrelated Miami photography.
 mission_mode=os.getenv("MISSION_MODE","1")=="1"
