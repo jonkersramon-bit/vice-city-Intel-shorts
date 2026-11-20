@@ -51,7 +51,7 @@ def draw_procedural(i):
             glow=max(0,1-abs(x-W*.5)/(W*.7))
             pix[x,y]=(int(45+105*(1-p)*glow),int(13+25*p),int(75+52*p))
     d=ImageDraw.Draw(im,"RGBA")
-    horizon=min(6,len(assets))90+rng.randint(-75,65)
+    horizon=690+rng.randint(-75,65)
     d.ellipse((100,150,630,680),fill=(255,58,175,35))
     d.ellipse((200,220,570,590),fill=(255,96,171,38))
     for j in range(20):
@@ -212,7 +212,7 @@ for visual in assets[:6]:
 if len(assets)<4:
     raise RuntimeError("Not enough licensed cinematic photographs. Add at least four unique images in assets/ or retry Wikimedia Commons. Refusing to publish placeholder illustrations.")
 sentences=[s.strip() for s in re.split(r"(?<=[.!?])\s+",script) if s.strip()]
-n=6
+n=min(6,len(assets))
 scene_duration=(duration+0.25*(n-1))/n
 for i in range(n):
     if assets:
