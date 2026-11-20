@@ -300,10 +300,18 @@ for i in range(n):
     if assets:
         im=Image.open(assets[i]).convert("RGB")
         sw,sh=im.size
-        scale=max(W/sw,H/sh)
-        im=im.resize((math.ceil(sw*scale),math.ceil(sh*scale)),Image.Resampling.LANCZOS)
-        x=(im.width-W)//2;y=(im.height-H)//2
-        im=im.crop((x,y,x+W,y+H))
+        if gameplay_file.is_file():
+            # Storyboard must show the same full-frame composition as the MP4.
+            background=im.resize((W,H),Image.Resampling.LANCZOS).filter(ImageFilter.GaussianBlur(24))
+            scale=min(W/sw,H/sh)
+            foreground=im.resize((max(1,round(sw*scale)),max(1,round(sh*scale))),Image.Resampling.LANCZOS)
+            background.paste(foreground,((W-foreground.width)//2,(H-foreground.height)//2))
+            im=background
+        else:
+            scale=max(W/sw,H/sh)
+            im=im.resize((math.ceil(sw*scale),math.ceil(sh*scale)),Image.Resampling.LANCZOS)
+            x=(im.width-W)//2;y=(im.height-H)//2
+            im=im.crop((x,y,x+W,y+H))
     else:
         raise RuntimeError("Missing visual assets")
     im.save(OUT/f"scene_{i:02}.png")
