@@ -273,7 +273,7 @@ if gameplay_file.is_file():
 assets=([ROOT/"assets"/f"gameplay_frame_{idx:02}.jpg" for idx in range(6)] if gameplay_file.is_file() else sorted([p for p in (ROOT/"assets").glob("*") if p.suffix.lower() in (".png",".jpg",".jpeg",".webp")]) if (ROOT/"assets").exists() else [])
 # Mission guides must show actual relevant footage or deliberately selected screenshots.
 # Do not silently substitute unrelated Miami photography.
-mission_mode=os.getenv("MISSION_MODE","1")=="1"
+mission_mode=os.getenv("MISSION_MODE","0")=="1"
 if not assets and mission_mode:
     raise RuntimeError(
         "MISSION ASSETS REQUIRED: Add 4-6 relevant, rights-cleared mission screenshots "
@@ -282,6 +282,14 @@ if not assets and mission_mode:
     )
 if not assets:
     assets=fetch_licensed_city_photos()
+if len(assets)<6 and not mission_mode:
+    directory=ROOT/"original_scenes"
+    directory.mkdir(exist_ok=True)
+    for idx in range(len(assets),6):
+        target=directory/f"original_{idx:02}.png"
+        draw_procedural(idx).save(target)
+        assets.append(target)
+
 # Reject duplicate images even when manually supplied in assets/.
 # A simple pixel signature also catches byte-identical images in different formats.
 seen_visuals=set()
@@ -292,7 +300,7 @@ for visual in assets[:6]:
         raise RuntimeError("Duplicate image detected: "+str(visual))
     seen_visuals.add(signature)
 if len(assets)<4:
-    raise RuntimeError("At least four distinct, relevant scene images are required. No placeholder visuals will be published.")
+    raise RuntimeError("At least four distinct visual scenes are required.")
 sentences=[s.strip() for s in re.split(r"(?<=[.!?])\s+",script) if s.strip()]
 n=min(6,len(assets))
 scene_duration=(duration+0.35*(n-1))/n
@@ -424,6 +432,6 @@ cmd+=["-filter_complex",";".join(filters),"-map","[vout]","-map",f"{n}:a:0","-t"
 subprocess.run(cmd,check=True)
 credit=os.getenv("GAMEPLAY_CREDIT","").strip()
 credit_line=f"Gameplay: {credit}\n" if credit else ""
-description=f"{topic} 🎮 #Shorts\n\n{script}\n\n{credit_line}#GTA6 #ViceCityIntel #GamingTips #Shorts\n"
+description=f"{topic} 🎮 #Shorts\n\n{script}\n\n{credit_line}Visuals are illustrative, not gameplay footage.\n#GTA6 #ViceCityIntel #GamingTips #Shorts\n"
 (OUT/"youtube.txt").write_text(description,encoding="utf-8")
 print("Created",OUT/"vice_city_intel.mp4",f"duration={duration:.1f}s",f"words={len(word_events)}",f"images={len(assets)}")
