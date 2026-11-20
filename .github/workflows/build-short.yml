@@ -10,6 +10,10 @@ on:
         description: "Direct HTTPS MP4 URL from a source licensed for reuse (optional)"
         required: false
         default: ""
+      scene_times:
+        description: 'Six mission-matched timestamps in seconds, comma-separated (optional)'
+        required: false
+        default: ''
       gameplay_credit:
         description: "Original creator credit for this gameplay (optional)"
         required: false
@@ -77,6 +81,7 @@ jobs:
           SHORT_TOPIC: ${{ inputs.topic }}
           SHORT_SCRIPT: ${{ inputs.script }}
           GAMEPLAY_CREDIT: ${{ inputs.gameplay_credit }}
+          SCENE_TIMES: ${{ inputs.scene_times }}
         run: python make_short.py
       - name: Verify MP4 and subtitles
         run: |
