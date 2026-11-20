@@ -17,7 +17,7 @@ on:
       script:
         description: "English narration (optional)"
         required: false
-        default: "Stuck on Unwanted Attention in GTA 6? Do not rush the impound gate. Go around the right side of the building and use the scissor lift to reach the roof. Find the Phoenix and scan it with your phone to update the objective. Then sneak down, hotwire the car, and make your escape. Follow Vice City Intel for more mission guides."
+        default: "Struggling with Unwanted Attention in GTA 6? At the Hamlet impound, sneak over the fence and use the containers to reach the back lot. Find the red Phoenix attached to a tow truck. Get into the tow truck and unhook the Phoenix. Drive the Phoenix through the gate, lose the police, then respray it at Pay 'n' Spray. Follow Vice City Intel for more mission guides."
 permissions:
   contents: read
 jobs:
