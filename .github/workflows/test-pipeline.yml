@@ -1,0 +1,50 @@
+name: Test Vice City Intel rendering
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - make_short.py
+      - .github/workflows/build-short.yml
+      - .github/workflows/test-pipeline.yml
+permissions:
+  contents: read
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install free tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install edge-tts pillow
+      - name: Compile script
+        run: python -m py_compile make_short.py
+      - name: Generate synthetic moving footage for TEST ONLY
+        run: |
+          mkdir -p assets
+          ffmpeg -y -loglevel error -f lavfi -i "testsrc2=size=1280x720:rate=30" -t 55 -c:v libx264 -preset ultrafast -pix_fmt yuv420p assets/gameplay.mp4
+      - name: Run complete test render
+        env:
+          SHORT_TOPIC: "Pipeline test - NOT REAL GAMEPLAY"
+          SHORT_SCRIPT: "This is a technical test of the Vice City Intel video workflow. It checks video motion, narration, captions, and export. This is not a real gameplay guide."
+          SCENE_TIMES: "0,8,16,24,32,40"
+          MISSION_MODE: "1"
+        run: python make_short.py
+      - name: Validate result
+        run: |
+          test -s output/vice_city_intel.mp4
+          test -s output/captions.ass
+          test -s output/scene_review.jpg
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_type -of csv=p=0 output/vice_city_intel.mp4 | grep -q video
+          ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of csv=p=0 output/vice_city_intel.mp4 | grep -q audio
+      - name: Upload test storyboard only
+        uses: actions/upload-artifact@v7
+        with:
+          path: output/scene_review.jpg
+          archive: false
+          retention-days: 2
