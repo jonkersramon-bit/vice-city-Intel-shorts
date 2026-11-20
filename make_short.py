@@ -270,6 +270,18 @@ for i in range(n):
         raise RuntimeError("Missing visual assets")
     im.save(OUT/f"scene_{i:02}.png")
 
+# A visual review sheet helps catch mismatched or duplicate mission moments.
+preview_w,preview_h=240,426
+sheet=Image.new("RGB",(preview_w*3,preview_h*2),(8,8,25))
+for idx in range(n):
+    with Image.open(OUT/f"scene_{idx:02}.png") as source:
+        tile=source.convert("RGB").resize((preview_w,preview_h),Image.Resampling.LANCZOS)
+        sheet.paste(tile,((idx%3)*preview_w,(idx//3)*preview_h))
+    d=ImageDraw.Draw(sheet)
+    d.rectangle(((idx%3)*preview_w,(idx//3)*preview_h,(idx%3)*preview_w+95,(idx//3)*preview_h+30),fill=(10,10,35))
+    d.text(((idx%3)*preview_w+8,(idx//3)*preview_h+4),f"SCENE {idx+1}",fill="white")
+sheet.save(OUT/"scene_review.jpg",quality=90)
+
 def stamp(sec):
     cs=round(max(0,sec)*100)
     return f"{cs//360000}:{cs//6000%60:02}:{cs//100%60:02}.{cs%100:02}"
