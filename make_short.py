@@ -67,6 +67,15 @@ duration=float(subprocess.check_output(["ffprobe","-v","error","-show_entries","
 if duration<=0: raise RuntimeError("Voice-over has zero duration")
 duration+=0.35
 
+# Mission walkthroughs need real TTS word boundaries for reliable subtitles.
+# Approximate captions can drift and must not silently pass quality checks.
+if os.getenv("MISSION_MODE","1")=="1":
+    if len(word_events)<max(5,len(script.split())//3):
+        raise RuntimeError("Voice service did not provide enough word timestamps for accurate captions")
+    last_time=max(start+length for start,length,_ in word_events)
+    if last_time>duration+0.25:
+        raise RuntimeError("Voice word timings exceed audio duration")
+
 def draw_procedural(i):
     """Original neon city scenes, NOT generated gameplay or AI photos."""
     rng=random.Random(84591+i*391)
