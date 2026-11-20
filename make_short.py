@@ -325,11 +325,18 @@ with ass.open("w",encoding="utf-8") as f:
 # Each scene is gently zoomed; transitions are short crossfades.
 cmd=["ffmpeg","-y","-loglevel","error"]
 for i in range(n):
-    cmd+=["-loop","1","-framerate","30","-t",str(scene_duration+.4),"-i",str(OUT/f"scene_{i:02}.png")]
+    if gameplay_file.is_file():
+        excerpt=min(source_duration*(i+0.25)/n,max(0,source_duration-scene_duration-0.5))
+        cmd+=["-ss",f"{excerpt:.3f}","-t",str(scene_duration+0.5),"-i",str(gameplay_file)]
+    else:
+        cmd+=["-loop","1","-framerate","30","-t",str(scene_duration+.4),"-i",str(OUT/f"scene_{i:02}.png")]
 cmd+=["-i",str(OUT/"voice.mp3")]
 filters=[]
 for i in range(n):
-    filters.append(f"[{i}:v]scale=900:1600,crop=720:1280:x='90+65*sin(n/85+{i}*1.3)':y='160+95*cos(n/105+{i}*0.9)',setsar=1,trim=duration={scene_duration+.35:.3f},setpts=PTS-STARTPTS,format=yuv420p[v{i}]")
+    if gameplay_file.is_file():
+        filters.append(f"[{i}:v]fps=30,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,setsar=1,trim=duration={scene_duration+.35:.3f},setpts=PTS-STARTPTS,format=yuv420p[v{i}]")
+    else:
+        filters.append(f"[{i}:v]scale=900:1600,crop=720:1280:x='90+65*sin(n/85+{i}*1.3)':y='160+95*cos(n/105+{i}*0.9)',setsar=1,trim=duration={scene_duration+.35:.3f},setpts=PTS-STARTPTS,format=yuv420p[v{i}]")
 last="v0"
 for i in range(1,n):
     nextname=f"xf{i}"
@@ -338,5 +345,5 @@ for i in range(1,n):
 filters.append(f"[{last}]ass={ass.as_posix()},drawbox=x=0:y=0:w=720:h=8:color=0xff39be:t=fill,drawbox=x=0:y=1272:w=720:h=8:color=0x23e6ff:t=fill[vout]")
 cmd+=["-filter_complex",";".join(filters),"-map","[vout]","-map",f"{n}:a:0","-t",str(duration),"-c:v","libx264","-preset","veryfast","-crf","21","-r","30","-c:a","aac","-b:a","160k","-movflags","+faststart",str(OUT/"vice_city_intel.mp4")]
 subprocess.run(cmd,check=True)
-(OUT/"youtube.txt").write_text(f"{topic} 🎮 #Shorts\n\n{script}\n\nMission footage/screenshots supplied by creator; verify game steps before publishing.\n#GTA6 #ViceCityIntel #GamingTips #Shorts\n",encoding="utf-8")
+(OUT/"youtube.txt").write_text(f"{topic} 🎮 #Shorts\n\n{script}\n\nGameplay: Jason's Video Games Source — https://www.youtube.com/@JasonsVideoGamesSource. Verify mission steps before publishing.\n#GTA6 #ViceCityIntel #GamingTips #Shorts\n",encoding="utf-8")
 print("Created",OUT/"vice_city_intel.mp4",f"duration={duration:.1f}s",f"words={len(word_events)}",f"images={len(assets)}")
