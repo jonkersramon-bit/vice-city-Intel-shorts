@@ -225,8 +225,10 @@ if gameplay_file.is_file():
         raise RuntimeError("Gameplay clip must be at least 12 seconds.")
     if scene_times and max(scene_times)>source_duration-2:
         raise RuntimeError("A selected scene timestamp exceeds the playable video duration")
+    if os.getenv("MISSION_MODE","1")=="1" and not scene_times:
+        raise RuntimeError("Mission guide requires six reviewed SCENE_TIMES. Automatic random excerpts can misrepresent mission steps.")
     for idx in range(6):
-        position=source_duration*(idx+0.5)/6
+        position=scene_times[idx] if scene_times else source_duration*(idx+0.5)/6
         target=ROOT/"assets"/f"gameplay_frame_{idx:02}.jpg"
         subprocess.run(["ffmpeg","-y","-loglevel","error","-ss",f"{position:.2f}",
             "-i",str(gameplay_file),"-frames:v","1","-q:v","2",str(target)],check=True)
