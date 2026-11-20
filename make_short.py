@@ -136,7 +136,7 @@ def fetch_licensed_city_photos():
         gray=im.convert("L").resize((17,16),Image.Resampling.LANCZOS)
         pixels=list(gray.getdata())
         return tuple(pixels[y*17+x]>pixels[y*17+x+1] for y in range(16) for x in range(16))
-    for idx,term in enumerate(searches + ["Miami Beach", "Ocean Drive Miami", "Miami at night", "Miami architecture"]):
+    for idx,term in enumerate(searches + ["Miami Beach neon night", "Ocean Drive Miami night", "Miami at night", "Miami architecture night"]):
         if len(credits)>=6:
             break
         try:
@@ -160,6 +160,8 @@ def fetch_licensed_city_photos():
                     continue
                 desc=re.sub("<[^>]+>"," ",meta.get("ImageDescription",{}).get("value","")).lower()
                 if any(bad in name+" "+desc for bad in forbidden):
+                    continue
+                if any(bad in name+" "+desc for bad in ("daytime","daylight","sunny day","broad daylight","morning","midday","noon")):
                     continue
                 if not (license_name.startswith("CC BY") or license_name in ("CC0","Public domain")):
                     continue
@@ -217,7 +219,7 @@ if len(assets)<4:
     raise RuntimeError("Not enough licensed cinematic photographs. Add at least four unique images in assets/ or retry Wikimedia Commons. Refusing to publish placeholder illustrations.")
 sentences=[s.strip() for s in re.split(r"(?<=[.!?])\s+",script) if s.strip()]
 n=min(6,len(assets))
-scene_duration=(duration+0.25*(n-1))/n
+scene_duration=(duration+0.35*(n-1))/n
 for i in range(n):
     if assets:
         im=Image.open(assets[i]).convert("RGB")
@@ -299,15 +301,15 @@ with ass.open("w",encoding="utf-8") as f:
 # Each scene is gently zoomed; transitions are short crossfades.
 cmd=["ffmpeg","-y","-loglevel","error"]
 for i in range(n):
-    cmd+=["-loop","1","-framerate","30","-t",str(scene_duration+.3),"-i",str(OUT/f"scene_{i:02}.png")]
+    cmd+=["-loop","1","-framerate","30","-t",str(scene_duration+.4),"-i",str(OUT/f"scene_{i:02}.png")]
 cmd+=["-i",str(OUT/"voice.mp3")]
 filters=[]
 for i in range(n):
-    filters.append(f"[{i}:v]scale=800:1423,crop=720:1280:x='40+20*sin(n/60)':y='70+20*cos(n/75)',setsar=1,trim=duration={scene_duration+.25:.3f},setpts=PTS-STARTPTS,format=yuv420p[v{i}]")
+    filters.append(f"[{i}:v]scale=900:1600,crop=720:1280:x='40+20*sin(n/60)':y='70+20*cos(n/75)',setsar=1,trim=duration={scene_duration+.35:.3f},setpts=PTS-STARTPTS,format=yuv420p[v{i}]")
 last="v0"
 for i in range(1,n):
     nextname=f"xf{i}"
-    filters.append(f"[{last}][v{i}]xfade=transition=fade:duration=0.25:offset={(scene_duration-.25)*i:.3f}[{nextname}]")
+    filters.append(f"[{last}][v{i}]xfade=transition=fade:duration=0.35:offset={(scene_duration-.35)*i:.3f}[{nextname}]")
     last=nextname
 filters.append(f"[{last}]ass={ass.as_posix()},drawbox=x=0:y=0:w=720:h=8:color=0xff39be:t=fill,drawbox=x=0:y=1272:w=720:h=8:color=0x23e6ff:t=fill[vout]")
 cmd+=["-filter_complex",";".join(filters),"-map","[vout]","-map",f"{n}:a:0","-t",str(duration),"-c:v","libx264","-preset","veryfast","-crf","21","-r","30","-c:a","aac","-b:a","160k","-movflags","+faststart",str(OUT/"vice_city_intel.mp4")]
