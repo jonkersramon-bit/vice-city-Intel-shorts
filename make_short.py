@@ -28,7 +28,7 @@ def duration(path):
     r=subprocess.check_output(["ffprobe","-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",str(path)],text=True)
     return float(r.strip())
 seconds=duration(OUT/"voice.mp3")+0.5
-sentences=[s.strip() for s in re.split(r"(?<=[.!?])\\s+",script) if s.strip()]
+sentences=[s.strip() for s in re.split(r"(?<=[.!?])\s+",script) if s.strip()]
 if not sentences: sentences=[script]
 images=sorted((ROOT/"assets").glob("*.png"))+sorted((ROOT/"assets").glob("*.jpg"))
 W,H=720,1280
@@ -80,9 +80,9 @@ weights=[max(1,len(s.split())) for s in sentences]
 total=sum(weights)
 with open(OUT/"frames.txt","w") as f:
     for path,w in zip(frames,weights):
-        f.write(f"file '{path.resolve()}'\\n")
-        f.write(f"duration {seconds*w/total:.3f}\\n")
-    f.write(f"file '{frames[-1].resolve()}'\\n")
+        f.write(f"file '{path.resolve()}'\n")
+        f.write(f"duration {seconds*w/total:.3f}\n")
+    f.write(f"file '{frames[-1].resolve()}'\n")
 subprocess.run(["ffmpeg","-y","-v","error","-safe","0","-f","concat","-i",str(OUT/"frames.txt"),"-i",str(OUT/"voice.mp3"),"-vf","fps=30,format=yuv420p","-c:v","libx264","-preset","veryfast","-crf","21","-c:a","aac","-b:a","160k","-shortest","-movflags","+faststart",str(OUT/"vice_city_intel.mp4")],check=True)
-(OUT/"youtube.txt").write_text(f"{topic} | Vice City Intel #Shorts\\n\\n{script}\\n\\n#Gaming #PS5 #Shorts\\n",encoding="utf-8")
+(OUT/"youtube.txt").write_text(f"{topic} | Vice City Intel #Shorts\n\n{script}\n\n#Gaming #PS5 #Shorts\n",encoding="utf-8")
 print("Video created:",OUT/"vice_city_intel.mp4")
