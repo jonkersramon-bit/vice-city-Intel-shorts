@@ -25,9 +25,15 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg fonts-dejavu-core
-          python -m pip install --disable-pip-version-check edge-tts pillow
+          python -m pip install --disable-pip-version-check edge-tts pillow yt-dlp
       - name: Validate Python script
         run: python -m py_compile make_short.py
+      - name: Download credited mission gameplay
+        run: |
+          mkdir -p assets output
+          yt-dlp --no-playlist --match-filter "duration < 1800" -f "bv*[height<=720]+ba/b[height<=720]/b" --merge-output-format mp4 --retries 2 --socket-timeout 15 -o "assets/gameplay.%(ext)s" "https://jasonsvideogamessource.com/grand-theft-auto-6-unwanted-attention-search-the-impound-steal-the-phoenix-lose-the-cops/"
+          test -s assets/gameplay.mp4
+          printf '%s\n' 'Gameplay: Jason\x27s Video Games Source — https://www.youtube.com/@JasonsVideoGamesSource' > output/GAMEPLAY_CREDIT.txt
       - name: Generate narration and video
         env:
           SHORT_TOPIC: ${{ inputs.topic }}
