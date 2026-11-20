@@ -151,9 +151,14 @@ def fetch_licensed_city_photos():
         "Miami Ocean Drive art deco night street",
         "Miami Beach neon art deco street photography",
         "Miami night street car photography",
+        "Miami road traffic night headlights",
+        "Miami parking garage cars",
+        "Miami highway road dusk",
         "Miami Beach palm trees boulevard night",
         "Miami art deco buildings at dusk street",
         "Miami city street evening traffic",
+        "Miami street intersection at night",
+        "Miami automobile street at night",
     ]
     forbidden=("satellite","aerial","map","diagram","drawing","illustration","painting",
                "poster","logo","screenshot","render","generated","skyview","bird's eye",
@@ -348,7 +353,7 @@ PlayResY: 1280
 WrapStyle: 2
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Captions,DejaVu Sans,28,&H00FFFFFF,&H000000FF,&H004B1545,&H950A0622,1,0,0,0,100,100,0,0,1,3,1,2,45,45,225,1
+Style: Captions,DejaVu Sans,43,&H00FFFFFF,&H000000FF,&H004B1545,&H950A0622,1,0,0,0,100,100,0,0,1,4,2,2,60,60,265,1
 Style: Brand,DejaVu Sans,35,&H00FFE829,&H000000FF,&H00300B25,&H00000000,1,0,0,0,100,100,0,0,1,2,0,8,30,30,70,1
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -358,17 +363,17 @@ with ass.open("w",encoding="utf-8") as f:
     f.write(f"Dialogue: 0,{stamp(0)},{stamp(duration)},Brand,,0,0,0,,VICE CITY INTEL\n")
     if word_events:
         # Use actual word timestamps from synthesis, not estimates.
-        for j in range(0,len(word_events),5):
-            group=word_events[j:j+5]
+        for j in range(0,len(word_events),4):
+            group=word_events[j:j+4]
             start=group[0][0]
-            end=word_events[j+5][0] if j+5<len(word_events) else duration
+            end=word_events[j+4][0] if j+4<len(word_events) else duration
             # Break only between words; keep captions within 2 lines and safe margins.
             words=[w[2].upper().replace("{","").replace("}","") for w in group]
             rows=[]
             line=""
             for word in words:
                 test=(line+" "+word).strip()
-                if len(test)>22 and line:
+                if len(test)>17 and line:
                     rows.append(line)
                     line=word
                 else:
@@ -381,7 +386,7 @@ with ass.open("w",encoding="utf-8") as f:
         # Provider sometimes omits WordBoundary events. Never truncate text.
         # Split the complete narration into short, word-safe captions.
         tokens=script.split()
-        groups=[tokens[i:i+4] for i in range(0,len(tokens),4)]
+        groups=[tokens[i:i+3] for i in range(0,len(tokens),3)]
         total=sum(len(g) for g in groups)
         cursor=0.0
         for group in groups:
@@ -391,7 +396,7 @@ with ass.open("w",encoding="utf-8") as f:
             row=""
             for word in text.split():
                 candidate=(row+" "+word).strip()
-                if len(candidate)>20 and row:
+                if len(candidate)>17 and row:
                     rows.append(row)
                     row=word
                 else:
