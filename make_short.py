@@ -102,7 +102,76 @@ def draw_mission_diagram(im,i):
         d.polygon([(499,568),(470,581),(492,602)],fill=pink)
     return im
 
+
+def fetch_licensed_city_photos():
+    """Download freely licensed real photographs; not GTA gameplay or AI art."""
+    import json
+    import urllib.parse
+    import urllib.request
+    import html
+    import hashlib
+    searches=[
+        "Miami Ocean Drive art deco night",
+        "Miami neon art deco buildings",
+        "Miami downtown skyline night",
+        "Miami Beach palm street night",
+        "Miami skyline dusk",
+        "Miami art deco street",
+    ]
+    directory=ROOT/"downloaded_photos"
+    directory.mkdir(exist_ok=True)
+    attribution=[]
+    for idx,term in enumerate(searches):
+        try:
+            params=urllib.parse.urlencode({
+                "action":"query","generator":"search","gsrsearch":f'filetype:bitmap {term}',
+                "gsrnamespace":"6","gsrlimit":"15","prop":"imageinfo",
+                "iiprop":"url|extmetadata|size","iiurlwidth":"1200","format":"json"
+            })
+            request=urllib.request.Request(
+                "https://commons.wikimedia.org/w/api.php?"+params,
+                headers={"User-Agent":"ViceCityIntelShorts/1.0 (educational montage; Wikimedia Commons attribution)"})
+            with urllib.request.urlopen(request,timeout=15) as response:
+                pages=json.load(response).get("query",{}).get("pages",{})
+            candidates=[]
+            for page in pages.values():
+                info=(page.get("imageinfo") or [{}])[0]
+                meta=info.get("extmetadata",{})
+                license_name=html.unescape(meta.get("LicenseShortName",{}).get("value",""))
+                if not (license_name.startswith("CC BY") or license_name in ("CC0","Public domain")):
+                    continue
+                if info.get("width",0)<900 or info.get("height",0)<600:
+                    continue
+                url=info.get("thumburl") or info.get("url")
+                if not url or not url.lower().split("?")[0].endswith((".jpg",".jpeg",".png",".webp")):
+                    continue
+                candidates.append((page,info,license_name,url))
+            if not candidates:
+                continue
+            page,info,license_name,url=candidates[idx%len(candidates)]
+            target=directory/f"photo_{idx:02}.jpg"
+            req=urllib.request.Request(url,headers={"User-Agent":"ViceCityIntelShorts/1.0"})
+            with urllib.request.urlopen(req,timeout=20) as response:
+                data=response.read(9_000_000)
+            from io import BytesIO
+            photo=Image.open(BytesIO(data)).convert("RGB")
+            if photo.width<650 or photo.height<400:
+                continue
+            photo.save(target,quality=90)
+            meta=info.get("extmetadata",{})
+            artist=html.unescape(re.sub("<[^>]+>","",meta.get("Artist",{}).get("value","Unknown")))
+            attribution.append(f"{target.name}: {page.get('title')} | {artist} | {license_name} | {info.get('descriptionurl','')}")
+        except Exception as error:
+            print("Commons photo unavailable:",term,type(error).__name__,str(error)[:100])
+    if attribution:
+        (OUT/"IMAGE_CREDITS.txt").write_text("\n".join(attribution)+"\n",encoding="utf-8")
+    return sorted(directory.glob("photo_*.jpg"))
+
 assets=sorted([p for p in (ROOT/"assets").glob("*") if p.suffix.lower() in (".png",".jpg",".jpeg",".webp")]) if (ROOT/"assets").exists() else []
+if not assets:
+    assets=fetch_licensed_city_photos()
+if len(assets)<4:
+    raise RuntimeError("Not enough licensed cinematic photographs. Add at least four unique portrait images in assets/ or retry Wikimedia Commons. Refusing to publish placeholder illustrations.")
 sentences=[s.strip() for s in re.split(r"(?<=[.!?])\s+",script) if s.strip()]
 n=max(4,min(6,len(sentences)))
 scene_duration=(duration+0.25*(n-1))/n
@@ -115,7 +184,7 @@ for i in range(n):
         x=(im.width-W)//2;y=(im.height-H)//2
         im=im.crop((x,y,x+W,y+H))
     else:
-        im=draw_mission_diagram(draw_procedural(i),i)
+        raise RuntimeError("Missing visual assets")
     im.save(OUT/f"scene_{i:02}.png")
 
 def stamp(sec):
