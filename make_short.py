@@ -373,7 +373,7 @@ filters.append(f"[{last}]ass={ass.as_posix()},drawbox=x=0:y=0:w=720:h=8:color=0x
 cmd+=["-filter_complex",";".join(filters),"-map","[vout]","-map",f"{n}:a:0","-t",str(duration),"-c:v","libx264","-preset","veryfast","-crf","21","-r","30","-c:a","aac","-b:a","160k","-movflags","+faststart",str(OUT/"vice_city_intel.mp4")]
 subprocess.run(cmd,check=True)
 credit=os.getenv("GAMEPLAY_CREDIT","").strip()
-credit_line=f"Gameplay: {credit}\\n" if credit else ""
-description=f"{topic} 🎮 #Shorts\\n\\n{script}\\n\\n{credit_line}#GTA6 #ViceCityIntel #GamingTips #Shorts\\n"
+credit_line=f"Gameplay: {credit}\n" if credit else ""
+description=f"{topic} 🎮 #Shorts\n\n{script}\n\n{credit_line}#GTA6 #ViceCityIntel #GamingTips #Shorts\n"
 (OUT/"youtube.txt").write_text(description,encoding="utf-8")
 print("Created",OUT/"vice_city_intel.mp4",f"duration={duration:.1f}s",f"words={len(word_events)}",f"images={len(assets)}")
