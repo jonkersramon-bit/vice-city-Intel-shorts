@@ -6,6 +6,14 @@ on:
         description: "Short topic (optional)"
         required: false
         default: "GTA 6 Unwanted Attention: Sneak Into the Impound"
+      gameplay_url:
+        description: "Direct HTTPS MP4 URL from a source licensed for reuse (optional)"
+        required: false
+        default: ""
+      gameplay_credit:
+        description: "Original creator credit for this gameplay (optional)"
+        required: false
+        default: ""
       script:
         description: "English narration (optional)"
         required: false
@@ -28,18 +36,47 @@ jobs:
           python -m pip install --disable-pip-version-check edge-tts pillow
       - name: Validate Python script
         run: python -m py_compile make_short.py
-      - name: Check authorized gameplay source
+      - name: Retrieve authorized gameplay
+        env:
+          GAMEPLAY_URL: ${{ inputs.gameplay_url }}
+          GAMEPLAY_CREDIT: ${{ inputs.gameplay_credit }}
         run: |
           mkdir -p assets output
+          if [ -n "$GAMEPLAY_URL" ]; then
+            python - <<'PY'
+          import os,urllib.parse,urllib.request,pathlib
+          url=os.environ["GAMEPLAY_URL"]
+          parsed=urllib.parse.urlsplit(url)
+          if parsed.scheme!="https" or not parsed.hostname or parsed.hostname in ("localhost","127.0.0.1"):
+              raise SystemExit("Only direct public HTTPS URLs are accepted")
+          req=urllib.request.Request(url,headers={"User-Agent":"ViceCityIntel/1.0"})
+          target=pathlib.Path("assets/gameplay.mp4")
+          with urllib.request.urlopen(req,timeout=40) as response, target.open("wb") as out:
+              if "text/html" in response.headers.get("Content-Type","").lower():
+                  raise SystemExit("URL returned a webpage, not an MP4 file")
+              total=0
+              while True:
+                  block=response.read(1024*1024)
+                  if not block: break
+                  total+=len(block)
+                  if total>350*1024*1024: raise SystemExit("Video exceeds 350MB")
+                  out.write(block)
+          if total<100000: raise SystemExit("Downloaded file too small to be gameplay")
+          PY
+          fi
           if [ ! -s assets/gameplay.mp4 ]; then
-            echo "::error::No gameplay file found at assets/gameplay.mp4. YouTube blocks GitHub's automated downloads. Add an authorized gameplay MP4 to the repository; the workflow will use it automatically."
+            echo "::error::No licensed gameplay file. Supply a direct downloadable MP4 link via gameplay_url, or add assets/gameplay.mp4. YouTube watch-page links are not direct MP4 links."
             exit 1
           fi
-          printf '%s\n' 'Gameplay: @JasonsVideoGamesSource (only when this is the actual licensed source)' > output/GAMEPLAY_CREDIT.txt
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_type -of csv=p=0 assets/gameplay.mp4 | grep -q video
+          if [ -n "$GAMEPLAY_CREDIT" ]; then
+            printf 'Gameplay: %s\n' "$GAMEPLAY_CREDIT" > output/GAMEPLAY_CREDIT.txt
+          fi
       - name: Generate narration and video
         env:
           SHORT_TOPIC: ${{ inputs.topic }}
           SHORT_SCRIPT: ${{ inputs.script }}
+          GAMEPLAY_CREDIT: ${{ inputs.gameplay_credit }}
         run: python make_short.py
       - name: Verify MP4 and subtitles
         run: |
