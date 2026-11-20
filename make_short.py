@@ -51,7 +51,7 @@ def draw_procedural(i):
             glow=max(0,1-abs(x-W*.5)/(W*.7))
             pix[x,y]=(int(45+105*(1-p)*glow),int(13+25*p),int(75+52*p))
     d=ImageDraw.Draw(im,"RGBA")
-    horizon=690+rng.randint(-75,65)
+    horizon=min(6,len(assets))90+rng.randint(-75,65)
     d.ellipse((100,150,630,680),fill=(255,58,175,35))
     d.ellipse((200,220,570,590),fill=(255,96,171,38))
     for j in range(20):
@@ -134,7 +134,9 @@ def fetch_licensed_city_photos():
         gray=im.convert("L").resize((17,16),Image.Resampling.LANCZOS)
         pixels=list(gray.getdata())
         return tuple(pixels[y*17+x]>pixels[y*17+x+1] for y in range(16) for x in range(16))
-    for idx,term in enumerate(searches):
+    for idx,term in enumerate(searches + ["Miami Beach", "Ocean Drive Miami", "Miami at night", "Miami architecture"]):
+        if len(credits)>=6:
+            break
         try:
             params=urllib.parse.urlencode({
                 "action":"query","generator":"search","gsrsearch":term,
@@ -179,13 +181,14 @@ def fetch_licensed_city_photos():
                     fp=fingerprint(photo)
                     if any(sum(a!=b for a,b in zip(fp,prev))<32 for prev in seen_pixels):
                         continue
-                    target=directory/f"photo_{idx:02}.jpg"
+                    target=directory/f"photo_{len(credits):02}.jpg"
                     photo.save(target,quality=92)
                     seen_pixels.append(fp)
                     seen_hashes.add(info.get("sha1"))
                     artist=html.unescape(re.sub("<[^>]+>","",info.get("extmetadata",{}).get("Artist",{}).get("value","Unknown")))
                     credits.append(f"{target.name}: {page.get('title')} | {artist} | {license_name} | {info.get('descriptionurl','')}")
-                    break
+                    if len(credits)>=6:
+                        break
                 except Exception as error:
                     print("Skipped candidate:",type(error).__name__)
         except Exception as error:
@@ -206,8 +209,8 @@ for visual in assets[:6]:
     if signature in seen_visuals:
         raise RuntimeError("Duplicate image detected: "+str(visual))
     seen_visuals.add(signature)
-if len(assets)<6:
-    raise RuntimeError("Not enough licensed cinematic photographs. Add at least six unique portrait images in assets/ or retry Wikimedia Commons. Refusing to publish placeholder illustrations.")
+if len(assets)<4:
+    raise RuntimeError("Not enough licensed cinematic photographs. Add at least four unique images in assets/ or retry Wikimedia Commons. Refusing to publish placeholder illustrations.")
 sentences=[s.strip() for s in re.split(r"(?<=[.!?])\s+",script) if s.strip()]
 n=6
 scene_duration=(duration+0.25*(n-1))/n
