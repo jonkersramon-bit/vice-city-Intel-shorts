@@ -5,11 +5,11 @@ on:
       topic:
         description: "Short topic (optional)"
         required: false
-        default: "GTA Online: Sell Your Business Stock Without Griefers"
+        default: "GTA 6 Unwanted Attention: Sneak Into the Impound"
       script:
         description: "English narration (optional)"
         required: false
-        default: "Tired of losing your GTA Online business stock to griefers? Here is a tip. Open the pause menu, go to Online, then Find New Session, and choose Invite Only. You can run business sell missions in a private lobby, without random players attacking you. Just remember: public lobbies can pay a high-demand bonus. Follow Vice City Intel for more GTA tips."
+        default: "Stuck on Unwanted Attention in GTA 6? Do not rush the impound gate. Go around the right side of the building and use the scissor lift to reach the roof. Find the Phoenix and scan it with your phone to update the objective. Then sneak down, hotwire the car, and make your escape. Follow Vice City Intel for more mission guides."
 permissions:
   contents: read
 jobs:
