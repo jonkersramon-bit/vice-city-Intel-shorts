@@ -305,7 +305,7 @@ for i in range(n):
 cmd+=["-i",str(OUT/"voice.mp3")]
 filters=[]
 for i in range(n):
-    filters.append(f"[{i}:v]scale=900:1600,crop=720:1280:x='40+20*sin(n/60)':y='70+20*cos(n/75)',setsar=1,trim=duration={scene_duration+.35:.3f},setpts=PTS-STARTPTS,format=yuv420p[v{i}]")
+    filters.append(f"[{i}:v]scale=900:1600,crop=720:1280:x='90+65*sin(n/85+{i}*1.3)':y='160+95*cos(n/105+{i}*0.9)',setsar=1,trim=duration={scene_duration+.35:.3f},setpts=PTS-STARTPTS,format=yuv420p[v{i}]")
 last="v0"
 for i in range(1,n):
     nextname=f"xf{i}"
