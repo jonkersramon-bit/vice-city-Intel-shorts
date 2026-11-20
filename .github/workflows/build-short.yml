@@ -47,6 +47,10 @@ jobs:
         run: |
           mkdir -p assets output
           if [ -n "$GAMEPLAY_URL" ]; then
+            if [ -z "$GAMEPLAY_CREDIT" ]; then
+              echo "::error::A third-party gameplay URL requires a creator credit and verified reuse permission."
+              exit 1
+            fi
             python - <<'PY'
           import os,urllib.parse,urllib.request,pathlib
           url=os.environ["GAMEPLAY_URL"]
@@ -73,6 +77,7 @@ jobs:
             exit 1
           fi
           ffprobe -v error -select_streams v:0 -show_entries stream=codec_type -of csv=p=0 assets/gameplay.mp4 | grep -q video
+          ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 assets/gameplay.mp4 | awk '{ if ($1 < 12) exit 1 }'
           if [ -n "$GAMEPLAY_CREDIT" ]; then
             printf 'Gameplay: %s\n' "$GAMEPLAY_CREDIT" > output/GAMEPLAY_CREDIT.txt
           fi
