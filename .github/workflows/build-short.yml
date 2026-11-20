@@ -5,11 +5,11 @@ on:
       topic:
         description: "Short topic (optional)"
         required: false
-        default: "PS5 controller not connecting? Try this reset"
+        default: "GTA Online: Sell Your Business Stock Without Griefers"
       script:
         description: "English narration (optional)"
         required: false
-        default: "PS5 controller not connecting? Here is a quick fix. First, turn off your PlayStation 5. Find the tiny reset hole on the back of your DualSense controller, next to the Sony logo. Hold the reset button with a pin for at least five seconds. Then connect the controller to your PS5 using its USB cable and press the PS button. Follow Vice City Intel for more gaming tips."
+        default: "Tired of losing your GTA Online business stock to griefers? Here is a tip. Open the pause menu, go to Online, then Find New Session, and choose Invite Only. You can run business sell missions in a private lobby, without random players attacking you. Just remember: public lobbies can pay a high-demand bonus. Follow Vice City Intel for more GTA tips."
 permissions:
   contents: read
 jobs:
