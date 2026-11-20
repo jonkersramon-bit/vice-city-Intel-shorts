@@ -28,13 +28,40 @@ fontsmall=ImageFont.truetype(fontpath,31)
 word_events=[]
 
 async def narrate():
-    communicate=edge_tts.Communicate(script,"en-US-AriaNeural",rate="+8%")
-    with (OUT/"voice.mp3").open("wb") as f:
-        async for part in communicate.stream():
-            if part["type"]=="audio":
-                f.write(part["data"])
-            elif part["type"]=="WordBoundary":
-                word_events.append((part["offset"]/10_000_000,part["duration"]/10_000_000,part["text"]))
+    """Retry transient TTS failures; never render a silent Short."""
+    import tempfile
+    import time
+    voices=["en-US-AriaNeural","en-US-JennyNeural"]
+    errors=[]
+    for attempt in range(4):
+        word_events.clear()
+        voice=voices[min(attempt//2,len(voices)-1)]
+        target=OUT/"voice.mp3"
+        temp=OUT/"voice.partial.mp3"
+        if temp.exists():
+            temp.unlink()
+        try:
+            communicate=edge_tts.Communicate(script,voice,rate="+8%")
+            with temp.open("wb") as f:
+                async for part in communicate.stream():
+                    if part["type"]=="audio":
+                        f.write(part["data"])
+                    elif part["type"]=="WordBoundary":
+                        word_events.append((part["offset"]/10_000_000,part["duration"]/10_000_000,part["text"]))
+            if not temp.exists() or temp.stat().st_size<2000:
+                raise RuntimeError("TTS produced no usable audio")
+            subprocess.run(["ffprobe","-v","error","-show_entries","format=duration",
+                "-of","default=noprint_wrappers=1:nokey=1",str(temp)],
+                check=True,capture_output=True,text=True)
+            temp.replace(target)
+            return
+        except Exception as exc:
+            errors.append(f"{voice}: {type(exc).__name__}: {exc}")
+            if temp.exists():
+                temp.unlink()
+            if attempt<3:
+                await asyncio.sleep(2*(attempt+1))
+    raise RuntimeError("Voice generation failed after retries: "+" | ".join(errors[-2:]))
 asyncio.run(narrate())
 duration=float(subprocess.check_output(["ffprobe","-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",str(OUT/"voice.mp3")],text=True).strip())
 if duration<=0: raise RuntimeError("Voice-over has zero duration")
