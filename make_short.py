@@ -400,7 +400,10 @@ cmd+=["-i",str(OUT/"voice.mp3")]
 filters=[]
 for i in range(n):
     if gameplay_file.is_file():
-        filters.append(f"[{i}:v]fps=30,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,setsar=1,trim=duration={scene_duration+.35:.3f},setpts=PTS-STARTPTS,format=yuv420p[v{i}]")
+        filters.append(f"[{i}:v]fps=30,split=2[bg{i}][fg{i}]")
+        filters.append(f"[bg{i}]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,boxblur=20:2[blur{i}]")
+        filters.append(f"[fg{i}]scale=720:1280:force_original_aspect_ratio=decrease,setsar=1[front{i}]")
+        filters.append(f"[blur{i}][front{i}]overlay=(W-w)/2:(H-h)/2:shortest=1,trim=duration={scene_duration+.35:.3f},setpts=PTS-STARTPTS,format=yuv420p[v{i}]")
     else:
         filters.append(f"[{i}:v]scale=900:1600,crop=720:1280:x='90+65*sin(n/85+{i}*1.3)':y='160+95*cos(n/105+{i}*0.9)',setsar=1,trim=duration={scene_duration+.35:.3f},setpts=PTS-STARTPTS,format=yuv420p[v{i}]")
 last="v0"
