@@ -121,7 +121,9 @@ def fetch_licensed_city_photos():
     ]
     forbidden=("satellite","aerial","map","diagram","drawing","illustration","painting",
                "poster","logo","screenshot","render","generated","skyview","bird's eye",
-               "topographic","google earth","nude","nudity","naked","beachgoers")
+               "topographic","google earth","nude","nudity","naked","beachgoers",
+               "newspaper","new york times","magazine","archive","pdf","scanned","scan",
+               "document","manuscript","book page","journal","article","text page","facsimile")
     directory=ROOT/"downloaded_photos"
     directory.mkdir(exist_ok=True)
     for old in directory.glob("photo_*.jpg"):
@@ -154,6 +156,8 @@ def fetch_licensed_city_photos():
                 meta=info.get("extmetadata",{})
                 license_name=html.unescape(meta.get("LicenseShortName",{}).get("value",""))
                 name=page.get("title","").lower()
+                if not name.endswith((".jpg",".jpeg",".png",".webp")):
+                    continue
                 desc=re.sub("<[^>]+>"," ",meta.get("ImageDescription",{}).get("value","")).lower()
                 if any(bad in name+" "+desc for bad in forbidden):
                     continue
