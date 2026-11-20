@@ -104,80 +104,107 @@ def draw_mission_diagram(im,i):
 
 
 def fetch_licensed_city_photos():
-    """Download freely licensed real photographs; not GTA gameplay or AI art."""
+    """Strictly vetted CC photographs; never reuse or silently substitute bad images."""
     import json
     import urllib.parse
     import urllib.request
     import html
     import hashlib
+    from io import BytesIO
     searches=[
-        "Miami Ocean Drive art deco night",
-        "Miami neon art deco buildings",
-        "Miami downtown skyline night",
-        "Miami Beach palm street night",
-        "Miami skyline dusk",
-        "Miami art deco street",
+        "Miami Ocean Drive art deco night street",
+        "Miami Beach neon art deco street photography",
+        "Miami night street car photography",
+        "Miami Beach palm trees boulevard night",
+        "Miami art deco buildings at dusk street",
+        "Miami city street evening traffic",
     ]
+    forbidden=("satellite","aerial","map","diagram","drawing","illustration","painting",
+               "poster","logo","screenshot","render","generated","skyview","bird's eye",
+               "topographic","google earth","nude","nudity","naked","beachgoers")
     directory=ROOT/"downloaded_photos"
     directory.mkdir(exist_ok=True)
-    attribution=[]
+    for old in directory.glob("photo_*.jpg"):
+        old.unlink()
+    seen_hashes=set()
+    seen_pixels=[]
+    credits=[]
+    def fingerprint(im):
+        # 16x16 grayscale difference hash to catch resizes and near duplicates.
+        gray=im.convert("L").resize((17,16),Image.Resampling.LANCZOS)
+        pixels=list(gray.getdata())
+        return tuple(pixels[y*17+x]>pixels[y*17+x+1] for y in range(16) for x in range(16))
     for idx,term in enumerate(searches):
         try:
             params=urllib.parse.urlencode({
-                "action":"query","generator":"search","gsrsearch":f'filetype:bitmap {term}',
-                "gsrnamespace":"6","gsrlimit":"15","prop":"imageinfo",
-                "iiprop":"url|extmetadata|size","iiurlwidth":"1200","format":"json"
+                "action":"query","generator":"search","gsrsearch":term,
+                "gsrnamespace":"6","gsrlimit":"40","prop":"imageinfo",
+                "iiprop":"url|extmetadata|size|sha1","iiurlwidth":"1200","format":"json"
             })
             request=urllib.request.Request(
                 "https://commons.wikimedia.org/w/api.php?"+params,
-                headers={"User-Agent":"ViceCityIntelShorts/1.0 (educational montage; Wikimedia Commons attribution)"})
-            with urllib.request.urlopen(request,timeout=15) as response:
+                headers={"User-Agent":"ViceCityIntelShorts/1.0 (licensed-image montage)"})
+            with urllib.request.urlopen(request,timeout=20) as response:
                 pages=json.load(response).get("query",{}).get("pages",{})
             candidates=[]
             for page in pages.values():
                 info=(page.get("imageinfo") or [{}])[0]
                 meta=info.get("extmetadata",{})
                 license_name=html.unescape(meta.get("LicenseShortName",{}).get("value",""))
+                name=page.get("title","").lower()
+                desc=re.sub("<[^>]+>"," ",meta.get("ImageDescription",{}).get("value","")).lower()
+                if any(bad in name+" "+desc for bad in forbidden):
+                    continue
                 if not (license_name.startswith("CC BY") or license_name in ("CC0","Public domain")):
                     continue
-                if info.get("width",0)<900 or info.get("height",0)<600:
+                if info.get("width",0)<1000 or info.get("height",0)<700:
+                    continue
+                # Prefer landscape/portrait street photos, never panoramic aerials.
+                if info.get("width",1)/max(1,info.get("height",1))>2.3:
                     continue
                 url=info.get("thumburl") or info.get("url")
                 if not url or not url.lower().split("?")[0].endswith((".jpg",".jpeg",".png",".webp")):
                     continue
+                if info.get("sha1") in seen_hashes:
+                    continue
                 candidates.append((page,info,license_name,url))
-            if not candidates:
-                continue
-            page,info,license_name,url=candidates[idx%len(candidates)]
-            target=directory/f"photo_{idx:02}.jpg"
-            req=urllib.request.Request(url,headers={"User-Agent":"ViceCityIntelShorts/1.0"})
-            with urllib.request.urlopen(req,timeout=20) as response:
-                data=response.read(9_000_000)
-            from io import BytesIO
-            photo=Image.open(BytesIO(data)).convert("RGB")
-            if photo.width<650 or photo.height<400:
-                continue
-            photo.save(target,quality=90)
-            meta=info.get("extmetadata",{})
-            artist=html.unescape(re.sub("<[^>]+>","",meta.get("Artist",{}).get("value","Unknown")))
-            attribution.append(f"{target.name}: {page.get('title')} | {artist} | {license_name} | {info.get('descriptionurl','')}")
+            for page,info,license_name,url in candidates:
+                try:
+                    req=urllib.request.Request(url,headers={"User-Agent":"ViceCityIntelShorts/1.0"})
+                    with urllib.request.urlopen(req,timeout=20) as response:
+                        data=response.read(9_000_000)
+                    photo=Image.open(BytesIO(data)).convert("RGB")
+                    if photo.width<650 or photo.height<400:
+                        continue
+                    fp=fingerprint(photo)
+                    if any(sum(a!=b for a,b in zip(fp,prev))<32 for prev in seen_pixels):
+                        continue
+                    target=directory/f"photo_{idx:02}.jpg"
+                    photo.save(target,quality=92)
+                    seen_pixels.append(fp)
+                    seen_hashes.add(info.get("sha1"))
+                    artist=html.unescape(re.sub("<[^>]+>","",info.get("extmetadata",{}).get("Artist",{}).get("value","Unknown")))
+                    credits.append(f"{target.name}: {page.get('title')} | {artist} | {license_name} | {info.get('descriptionurl','')}")
+                    break
+                except Exception as error:
+                    print("Skipped candidate:",type(error).__name__)
         except Exception as error:
-            print("Commons photo unavailable:",term,type(error).__name__,str(error)[:100])
-    if attribution:
-        (OUT/"IMAGE_CREDITS.txt").write_text("\n".join(attribution)+"\n",encoding="utf-8")
+            print("Commons search unavailable:",term,type(error).__name__,str(error)[:100])
+    if credits:
+        (OUT/"IMAGE_CREDITS.txt").write_text("\n".join(credits)+"\n",encoding="utf-8")
     return sorted(directory.glob("photo_*.jpg"))
 
 assets=sorted([p for p in (ROOT/"assets").glob("*") if p.suffix.lower() in (".png",".jpg",".jpeg",".webp")]) if (ROOT/"assets").exists() else []
 if not assets:
     assets=fetch_licensed_city_photos()
-if len(assets)<4:
-    raise RuntimeError("Not enough licensed cinematic photographs. Add at least four unique portrait images in assets/ or retry Wikimedia Commons. Refusing to publish placeholder illustrations.")
+if len(assets)<6:
+    raise RuntimeError("Not enough licensed cinematic photographs. Add at least six unique portrait images in assets/ or retry Wikimedia Commons. Refusing to publish placeholder illustrations.")
 sentences=[s.strip() for s in re.split(r"(?<=[.!?])\s+",script) if s.strip()]
-n=max(4,min(6,len(sentences)))
+n=6
 scene_duration=(duration+0.25*(n-1))/n
 for i in range(n):
     if assets:
-        im=Image.open(assets[i%len(assets)]).convert("RGB")
+        im=Image.open(assets[i]).convert("RGB")
         sw,sh=im.size
         scale=max(W/sw,H/sh)
         im=im.resize((math.ceil(sw*scale),math.ceil(sh*scale)),Image.Resampling.LANCZOS)
