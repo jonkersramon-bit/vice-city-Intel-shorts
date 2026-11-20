@@ -148,18 +148,22 @@ def fetch_licensed_city_photos():
     import hashlib
     from io import BytesIO
     searches=[
-        "Miami Ocean Drive art deco night street",
-        "Miami Beach neon art deco street photography",
-        "Miami night street car photography",
-        "Miami road traffic night headlights",
-        "Miami parking garage cars",
-        "Miami highway road dusk",
-        "Miami Beach palm trees boulevard night",
-        "Miami art deco buildings at dusk street",
-        "Miami city street evening traffic",
-        "Miami street intersection at night",
-        "Miami automobile street at night",
+        "Miami night cars street traffic",
+        "Miami police car road at night",
+        "Miami sports car downtown street",
+        "Miami city highway driving dusk",
+        "Miami parking garage automobiles",
+        "Miami car headlights street at night",
+        "Miami downtown intersection traffic",
+        "Miami night road palm trees",
+        "Miami street vehicles evening",
+        "Miami city traffic night photography",
     ]
+    # Reject generic hotel facades for mission/driving advice.
+    relevant=("car","vehicle","traffic","road","street","highway","drive","driving",
+              "police","parking","intersection","automobile","motor","truck","taxi")
+    irrelevant=("hotel","resort","facade","architecture","building","skyline",
+                "beach","sunset","ocean drive hotel","art deco hotel")
     forbidden=("satellite","aerial","map","diagram","drawing","illustration","painting",
                "poster","logo","screenshot","render","generated","skyview","bird's eye",
                "topographic","google earth","nude","nudity","naked","beachgoers",
@@ -177,7 +181,7 @@ def fetch_licensed_city_photos():
         gray=im.convert("L").resize((17,16),Image.Resampling.LANCZOS)
         pixels=list(gray.getdata())
         return tuple(pixels[y*17+x]>pixels[y*17+x+1] for y in range(16) for x in range(16))
-    for idx,term in enumerate(searches + ["Miami Beach neon night", "Ocean Drive Miami night", "Miami at night", "Miami architecture night"]):
+    for idx,term in enumerate(searches):
         if len(credits)>=6:
             break
         try:
@@ -201,6 +205,11 @@ def fetch_licensed_city_photos():
                     continue
                 desc=re.sub("<[^>]+>"," ",meta.get("ImageDescription",{}).get("value","")).lower()
                 if any(bad in name+" "+desc for bad in forbidden):
+                    continue
+                context=name+" "+desc
+                if not any(term in context for term in relevant):
+                    continue
+                if any(term in context for term in irrelevant):
                     continue
                 if any(bad in name+" "+desc for bad in ("daytime","daylight","sunny day","broad daylight","morning","midday","noon")):
                     continue
@@ -432,7 +441,7 @@ for i in range(1,n):
     nextname=f"xf{i}"
     filters.append(f"[{last}][v{i}]xfade=transition=fade:duration=0.35:offset={(scene_duration-.35)*i:.3f}[{nextname}]")
     last=nextname
-filters.append(f"[{last}]ass={ass.as_posix()},drawbox=x=0:y=0:w=720:h=8:color=0xff39be:t=fill,drawbox=x=0:y=1272:w=720:h=8:color=0x23e6ff:t=fill[vout]")
+filters.append(f"[{last}]ass={ass.as_posix()},drawbox=x=0:y=0:w=720:h=8:color=0xff39be:t=fill,drawbox=x=0:y=1272:w=720:h=8:color=0x23e6ff:t=fill,scale=1080:1920:flags=lanczos,format=yuv420p[vout]")
 cmd+=["-filter_complex",";".join(filters),"-map","[vout]","-map",f"{n}:a:0","-t",str(duration),"-c:v","libx264","-preset","veryfast","-crf","21","-r","30","-c:a","aac","-b:a","160k","-movflags","+faststart",str(OUT/"vice_city_intel.mp4")]
 subprocess.run(cmd,check=True)
 credit=os.getenv("GAMEPLAY_CREDIT","").strip()
