@@ -107,6 +107,7 @@ jobs:
           name: vice-city-intel-metadata
           path: |
             output/captions.ass
+            output/scene_review.jpg
             output/youtube.txt
             output/GAMEPLAY_CREDIT.txt
           if-no-files-found: ignore
