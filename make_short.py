@@ -206,6 +206,16 @@ def fetch_licensed_city_photos():
 # Extract six representative frames from creator-owned or explicitly licensed gameplay.
 # Place a single authorized MP4 in assets/gameplay.mp4. Never scrape third-party videos.
 gameplay_file=ROOT/"assets"/"gameplay.mp4"
+scene_times=[]
+raw_scene_times=os.getenv("SCENE_TIMES","").strip()
+if raw_scene_times:
+    try:
+        scene_times=[float(v.strip()) for v in raw_scene_times.split(",")]
+    except ValueError as exc:
+        raise RuntimeError("SCENE_TIMES must be comma-separated seconds") from exc
+    if len(scene_times)!=6 or any(v<0 for v in scene_times):
+        raise RuntimeError("SCENE_TIMES requires six nonnegative timestamps")
+
 if gameplay_file.is_file():
     source_duration=float(subprocess.check_output([
         "ffprobe","-v","error","-show_entries","format=duration",
@@ -213,6 +223,8 @@ if gameplay_file.is_file():
     ],text=True).strip())
     if source_duration<12:
         raise RuntimeError("Gameplay clip must be at least 12 seconds.")
+    if scene_times and max(scene_times)>source_duration-2:
+        raise RuntimeError("A selected scene timestamp exceeds the playable video duration")
     for idx in range(6):
         position=source_duration*(idx+0.5)/6
         target=ROOT/"assets"/f"gameplay_frame_{idx:02}.jpg"
@@ -326,7 +338,8 @@ with ass.open("w",encoding="utf-8") as f:
 cmd=["ffmpeg","-y","-loglevel","error"]
 for i in range(n):
     if gameplay_file.is_file():
-        excerpt=min(source_duration*(i+0.25)/n,max(0,source_duration-scene_duration-0.5))
+        excerpt=scene_times[i] if scene_times else source_duration*(i+0.25)/n
+        excerpt=min(excerpt,max(0,source_duration-scene_duration-0.5))
         cmd+=["-ss",f"{excerpt:.3f}","-t",str(scene_duration+0.5),"-i",str(gameplay_file)]
     else:
         cmd+=["-loop","1","-framerate","30","-t",str(scene_duration+.4),"-i",str(OUT/f"scene_{i:02}.png")]
