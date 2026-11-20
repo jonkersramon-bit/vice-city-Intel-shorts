@@ -203,6 +203,21 @@ def fetch_licensed_city_photos():
         (OUT/"IMAGE_CREDITS.txt").write_text("\n".join(credits)+"\n",encoding="utf-8")
     return sorted(directory.glob("photo_*.jpg"))
 
+# Extract six representative frames from creator-owned or explicitly licensed gameplay.
+# Place a single authorized MP4 in assets/gameplay.mp4. Never scrape third-party videos.
+gameplay_file=ROOT/"assets"/"gameplay.mp4"
+if gameplay_file.is_file():
+    source_duration=float(subprocess.check_output([
+        "ffprobe","-v","error","-show_entries","format=duration",
+        "-of","default=noprint_wrappers=1:nokey=1",str(gameplay_file)
+    ],text=True).strip())
+    if source_duration<12:
+        raise RuntimeError("Gameplay clip must be at least 12 seconds.")
+    for idx in range(6):
+        position=source_duration*(idx+0.5)/6
+        target=ROOT/"assets"/f"gameplay_frame_{idx:02}.jpg"
+        subprocess.run(["ffmpeg","-y","-loglevel","error","-ss",f"{position:.2f}",
+            "-i",str(gameplay_file),"-frames:v","1","-q:v","2",str(target)],check=True)
 assets=sorted([p for p in (ROOT/"assets").glob("*") if p.suffix.lower() in (".png",".jpg",".jpeg",".webp")]) if (ROOT/"assets").exists() else []
 # Mission guides must show actual relevant footage or deliberately selected screenshots.
 # Do not silently substitute unrelated Miami photography.
