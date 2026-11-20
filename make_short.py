@@ -102,7 +102,7 @@ PlayResY: 1280
 WrapStyle: 2
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Captions,DejaVu Sans,30,&H00FFFFFF,&H000000FF,&H004B1545,&H950A0622,1,0,0,0,100,100,0,0,1,3,1,2,45,45,225,1
+Style: Captions,DejaVu Sans,32,&H00FFFFFF,&H000000FF,&H004B1545,&H950A0622,1,0,0,0,100,100,0,0,1,3,1,2,45,45,225,1
 Style: Brand,DejaVu Sans,35,&H00FFE829,&H000000FF,&H00300B25,&H00000000,1,0,0,0,100,100,0,0,1,2,0,8,30,30,70,1
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -116,13 +116,25 @@ with ass.open("w",encoding="utf-8") as f:
             group=word_events[j:j+5]
             start=group[0][0]
             end=word_events[j+5][0] if j+5<len(word_events) else duration
-            caption=" ".join(w[2] for w in group).upper().replace("{","").replace("}")
-            caption="\\N".join([caption[k:k+26] for k in range(0,len(caption),26)])
+            # Break only between words; keep captions within 2 lines and safe margins.
+            words=[w[2].upper().replace("{","").replace("}","") for w in group]
+            rows=[]
+            line=""
+            for word in words:
+                test=(line+" "+word).strip()
+                if len(test)>22 and line:
+                    rows.append(line)
+                    line=word
+                else:
+                    line=test
+            if line:
+                rows.append(line)
+            caption=r"\N".join(rows)
             f.write(f"Dialogue: 1,{stamp(start)},{stamp(end)},Captions,,0,0,0,,{caption}\n")
     else:
         # Rare fallback if provider does not send word boundaries.
         for i,s in enumerate(sentences):
-            f.write(f"Dialogue: 1,{stamp(duration*i/len(sentences))},{stamp(duration*(i+1)/len(sentences))},Captions,,0,0,0,,{s.upper()}\n")
+            f.write(f"Dialogue: 1,{stamp(duration*i/len(sentences))},{stamp(duration*(i+1)/len(sentences))},Captions,,0,0,0,,{s.upper()[:40]}\n")
 
 # Each scene is gently zoomed; transitions are short crossfades.
 cmd=["ffmpeg","-y","-loglevel","error"]
@@ -135,7 +147,7 @@ for i in range(n):
 last="v0"
 for i in range(1,n):
     nextname=f"xf{i}"
-    filters.append(f"[{last}][v{i}]xfade=transition=fade:duration=0.25:offset={scene_duration*i:.3f}[{nextname}]")
+    filters.append(f"[{last}][v{i}]xfade=transition=fade:duration=0.25:offset={scene_duration*i-.25*(i-1):.3f}[{nextname}]")
     last=nextname
 filters.append(f"[{last}]ass={ass.as_posix()},drawbox=x=0:y=0:w=720:h=8:color=0xff39be:t=fill,drawbox=x=0:y=1272:w=720:h=8:color=0x23e6ff:t=fill[vout]")
 cmd+=["-filter_complex",";".join(filters),"-map","[vout]","-map",f"{n}:a:0","-t",str(duration),"-c:v","libx264","-preset","veryfast","-crf","21","-r","30","-c:a","aac","-b:a","160k","-movflags","+faststart",str(OUT/"vice_city_intel.mp4")]
