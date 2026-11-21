@@ -411,14 +411,19 @@ if not assets and mission_mode:
         "Also verify mission name and steps against gameplay before publishing."
     )
 if not assets:
-    assets=fetch_licensed_city_photos()
-    if len(assets)<1:
-        raise RuntimeError(
-            "PHOTO ASSETS NEEDED: No licensed, topic-matched "
-            "photographs were available. Add approved photos to assets/."
-        )
-    if len(assets)<6:
-        print(f"Using {len(assets)} verified photos with different motion scenes.")
+    # Never automatically publish unrelated stock photography.
+    # Use an explicitly reviewed six-image pack in assets/ instead.
+    raise RuntimeError(
+        "CURATED VISUALS REQUIRED: Put six cinematic, topic-matched, "
+        "rights-cleared images named scene_01.jpg through scene_06.jpg in assets/. "
+        "Random Wikimedia/Openverse results are disabled because they repeatedly "
+        "produced daylight buildings and unrelated archival images."
+    )
+if not gameplay_file.is_file():
+    expected=[ROOT/"assets"/f"scene_{i:02}.jpg" for i in range(1,7)]
+    if not all(p.is_file() for p in expected):
+        raise RuntimeError("Exactly six reviewed scene_01.jpg ... scene_06.jpg images are required.")
+    assets=expected
 
 # Reject duplicate images even when manually supplied in assets/.
 # A simple pixel signature also catches byte-identical images in different formats.
@@ -433,8 +438,6 @@ if len(assets)<1:
     raise RuntimeError("At least one licensed visual source is required.")
 sentences=[s.strip() for s in re.split(r"(?<=[.!?])\s+",script) if s.strip()]
 n=6
-if not gameplay_file.is_file() and len(assets)<6:
-    assets=[assets[i%len(assets)] for i in range(6)]
 scene_duration=(duration+0.35*(n-1))/n
 for i in range(n):
     if assets:
