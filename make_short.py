@@ -169,23 +169,38 @@ def fetch_licensed_city_photos():
     import html
     import hashlib
     from io import BytesIO
-    searches=[
-        "Miami night cars street traffic",
-        "Miami police car road at night",
-        "Miami sports car downtown street",
-        "Miami city highway driving dusk",
-        "Miami parking garage automobiles",
-        "Miami car headlights street at night",
-        "Miami downtown intersection traffic",
-        "Miami night road palm trees",
-        "Miami street vehicles evening",
-        "Miami city traffic night photography",
-    ]
-    # Reject generic hotel facades for mission/driving advice.
-    relevant=("car","vehicle","traffic","road","street","highway","drive","driving",
-              "police","parking","intersection","automobile","motor","truck","taxi")
-    irrelevant=("hotel","resort","facade","architecture","building","skyline",
-                "beach","sunset","ocean drive hotel","art deco hotel")
+    context=(topic+" "+script).lower()
+    if any(k in context for k in ("console","ps5","xbox","storage","download","update","pc","settings")):
+        searches=[
+            "gaming console neon light photography",
+            "video game controller rgb lighting",
+            "gaming computer neon led room",
+            "gaming setup RGB monitor",
+            "PlayStation controller dark photography",
+            "gaming keyboard RGB desk",
+            "gaming console LED light",
+            "computer gaming setup neon",
+        ]
+        relevant=("gaming","controller","console","playstation","computer","keyboard",
+                  "monitor","xbox","rgb","gamepad","pc")
+        irrelevant=("hotel","resort","facade","architecture","building","skyline","beach")
+    else:
+        searches=[
+            "Miami night cars street traffic",
+            "Miami police car road at night",
+            "Miami sports car downtown street",
+            "Miami city highway driving dusk",
+            "Miami parking garage automobiles",
+            "Miami car headlights street at night",
+            "Miami downtown intersection traffic",
+            "Miami night road palm trees",
+            "Miami street vehicles evening",
+            "Miami city traffic night photography",
+        ]
+        relevant=("car","vehicle","traffic","road","street","highway","drive","driving",
+                  "police","parking","intersection","automobile","motor","truck","taxi")
+        irrelevant=("hotel","resort","facade","architecture","building","skyline",
+                    "beach","sunset","ocean drive hotel","art deco hotel")
     forbidden=("satellite","aerial","map","diagram","drawing","illustration","painting",
                "poster","logo","screenshot","render","generated","skyview","bird's eye",
                "topographic","google earth","nude","nudity","naked","beachgoers",
@@ -317,24 +332,13 @@ if not assets and mission_mode:
         "Also verify mission name and steps against gameplay before publishing."
     )
 if not assets:
-    # Never mix unrelated hotel photography with mission advice.
-    # Use photos only if six properly licensed, relevant images were found.
-    candidate_photos=fetch_licensed_city_photos()
-    if len(candidate_photos)==6:
-        assets=candidate_photos
-    elif not mission_mode:
-        directory=ROOT/"original_scenes"
-        directory.mkdir(exist_ok=True)
-        assets=[]
-        for idx in range(6):
-            target=directory/f"mission_{idx:02}.png"
-            scene=draw_procedural(idx)
-            draw_mission_diagram(scene,idx)
-            scene.save(target)
-            assets.append(target)
-        print("Insufficient matching licensed photos; using six original illustrative mission scenes.")
-    else:
-        raise RuntimeError("Six relevant licensed mission visuals required.")
+    assets=fetch_licensed_city_photos()
+    if len(assets)<6:
+        raise RuntimeError(
+            "PHOTO ASSETS NEEDED: Could not verify six distinct, licensed, "
+            "topic-matched photographs. Add six approved photographic images to assets/. "
+            "Refusing to publish basic illustrations or unrelated hotels."
+        )
 
 # Reject duplicate images even when manually supplied in assets/.
 # A simple pixel signature also catches byte-identical images in different formats.
