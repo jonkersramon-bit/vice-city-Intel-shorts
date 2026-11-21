@@ -295,14 +295,24 @@ if not assets and mission_mode:
         "Also verify mission name and steps against gameplay before publishing."
     )
 if not assets:
-    assets=fetch_licensed_city_photos()
-if len(assets)<6 and not mission_mode:
-    directory=ROOT/"original_scenes"
-    directory.mkdir(exist_ok=True)
-    for idx in range(len(assets),6):
-        target=directory/f"original_{idx:02}.png"
-        draw_procedural(idx).save(target)
-        assets.append(target)
+    # Never mix unrelated hotel photography with mission advice.
+    # Use photos only if six properly licensed, relevant images were found.
+    candidate_photos=fetch_licensed_city_photos()
+    if len(candidate_photos)==6:
+        assets=candidate_photos
+    elif not mission_mode:
+        directory=ROOT/"original_scenes"
+        directory.mkdir(exist_ok=True)
+        assets=[]
+        for idx in range(6):
+            target=directory/f"mission_{idx:02}.png"
+            scene=draw_procedural(idx)
+            draw_mission_diagram(scene,idx)
+            scene.save(target)
+            assets.append(target)
+        print("Insufficient matching licensed photos; using six original illustrative mission scenes.")
+    else:
+        raise RuntimeError("Six relevant licensed mission visuals required.")
 
 # Reject duplicate images even when manually supplied in assets/.
 # A simple pixel signature also catches byte-identical images in different formats.
@@ -448,4 +458,7 @@ credit=os.getenv("GAMEPLAY_CREDIT","").strip()
 credit_line=f"Gameplay: {credit}\n" if credit else ""
 description=f"{topic} 🎮 #Shorts\n\n{script}\n\n{credit_line}Visuals are illustrative, not gameplay footage.\n#GTA6 #ViceCityIntel #GamingTips #Shorts\n"
 (OUT/"youtube.txt").write_text(description,encoding="utf-8")
+actual_dimensions=subprocess.check_output(["ffprobe","-v","error","-select_streams","v:0","-show_entries","stream=width,height","-of","csv=p=0",str(OUT/"vice_city_intel.mp4")],text=True).strip()
+if actual_dimensions!="1080,1920":
+    raise RuntimeError("Unexpected final MP4 resolution: "+actual_dimensions)
 print("Created",OUT/"vice_city_intel.mp4",f"duration={duration:.1f}s",f"words={len(word_events)}",f"images={len(assets)}")
