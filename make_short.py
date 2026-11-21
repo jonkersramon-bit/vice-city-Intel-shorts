@@ -112,41 +112,52 @@ def draw_procedural(i):
 
 
 def draw_mission_diagram(im,i):
-    """Clean original neon artwork: NO text baked into the image.
-    Voiceover captions and channel brand are drawn separately in safe areas.
-    """
+    """Illustrative neon gaming scene with visual subjects tied to the Short topic."""
     d=ImageDraw.Draw(im,"RGBA")
-    cyan=(34,235,255,230)
-    pink=(255,56,182,235)
-    # Restrict artwork to the central area; subtitles occupy the lower section.
-    d.rounded_rectangle((68,330,652,820),radius=38,
-                        fill=(8,8,29,160),outline=cyan if i%2==0 else pink,width=5)
-    if i%3==0:
-        # A recognizable stylized vehicle, no labels or false gameplay claims.
-        d.polygon([(170,600),(235,530),(465,530),(545,600)],fill=(21,60,105,255))
-        d.rounded_rectangle((135,590,585,700),radius=25,
-                            fill=(22,25,65,255),outline=pink,width=8)
-        for x in (245,480):
-            d.ellipse((x-42,665,x+42,749),fill=(8,8,25,255),outline=cyan,width=8)
-        d.line((190,615,525,615),fill=cyan,width=4)
-    elif i%3==1:
-        # Night road / intersection.
-        d.polygon([(280,400),(440,400),(580,800),(140,800)],fill=(20,23,60,235))
-        for y in (500,590,690):
-            d.line((355,y,365,y+45),fill=pink,width=10)
-        for x in (160,560):
-            d.line((x,460,x,735),fill=cyan,width=7)
-        d.polygon([(360,440),(340,470),(380,470)],fill=pink)
+    cyan=(34,235,255,230); pink=(255,56,182,235)
+    text=(topic+" "+script).lower()
+    if any(t in text for t in ("storage","ps5","console","update","download","settings","pc")):
+        subjects=["console","controller","screen","console","screen","controller"]
+    elif any(t in text for t in ("mission","escape","police","car","driving","vehicle","heist")):
+        subjects=["car","road","car","road","car","road"]
     else:
-        # Parking / garage scene.
-        for x in (195,345,495):
-            d.rounded_rectangle((x-38,470,x+38,690),radius=8,
-                                fill=(17,37,70,255),outline=cyan,width=6)
-        d.line((140,715,580,715),fill=pink,width=10)
-        d.rounded_rectangle((265,635,475,700),radius=15,
-                            fill=(36,33,82,255),outline=pink,width=6)
-        for x in (310,430):
-            d.ellipse((x-22,686,x+22,730),fill=(8,8,25,255),outline=cyan,width=5)
+        subjects=["city","car","screen","city","controller","car"]
+    subject=subjects[i%6]
+    if subject=="car":
+        d.polygon([(125,625),(235,530),(480,530),(605,625)],fill=(25,43,85,255))
+        d.rounded_rectangle((110,610,610,755),radius=40,fill=(20,25,61,255),outline=pink,width=10)
+        d.polygon([(245,548),(310,495),(447,495),(490,548)],fill=(16,80,122,240))
+        for x in (235,495):
+            d.ellipse((x-48,720,x+48,816),fill=(8,8,22,255),outline=cyan,width=10)
+        for x in (155,550):
+            d.ellipse((x-24,660,x+24,690),fill=(255,235,235,240))
+    elif subject=="road":
+        d.polygon([(300,520),(425,520),(660,1100),(70,1100)],fill=(16,20,51,240))
+        for y in (640,765,920):
+            d.line((350,y,375,y+70),fill=cyan if i%2 else pink,width=15)
+        for x in (90,590):
+            d.line((x,460,x,950),fill=pink,width=7)
+    elif subject=="console":
+        d.rounded_rectangle((185,440,525,865),radius=45,fill=(236,238,255,255),outline=cyan,width=9)
+        d.rounded_rectangle((275,445,435,850),radius=20,fill=(16,19,51,255))
+        d.line((270,470,270,840),fill=pink,width=12)
+    elif subject=="controller":
+        d.rounded_rectangle((105,565,615,830),radius=95,fill=(224,230,252,255),outline=cyan,width=10)
+        d.ellipse((225,660,315,750),fill=(21,25,65,255))
+        d.ellipse((425,660,515,750),fill=(21,25,65,255))
+        d.line((175,650,175,715),fill=pink,width=12)
+        d.line((145,685,205,685),fill=pink,width=12)
+    elif subject=="screen":
+        d.rounded_rectangle((95,420,625,800),radius=25,fill=(15,18,54,255),outline=cyan,width=12)
+        d.rectangle((135,460,585,745),fill=(35,20,88,255))
+        for j in range(5):
+            d.rounded_rectangle((170,510+j*43,480-j*17,530+j*43),radius=6,fill=pink if j%2 else cyan)
+        d.line((360,800,360,885),fill=pink,width=14)
+    else:
+        for j in range(8):
+            x=75+j*75
+            h=230+(j*71)%260
+            d.rectangle((x,850-h,x+60,850),fill=(13,18,56,255),outline=cyan if j%2 else pink,width=5)
     return im
 
 
@@ -383,8 +394,8 @@ PlayResY: 1280
 WrapStyle: 2
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Captions,DejaVu Sans,43,&H00FFFFFF,&H000000FF,&H004B1545,&H950A0622,1,0,0,0,100,100,0,0,1,4,2,2,60,60,265,1
-Style: Brand,DejaVu Sans,35,&H00FFE829,&H000000FF,&H00300B25,&H00000000,1,0,0,0,100,100,0,0,1,2,0,8,30,30,70,1
+Style: Captions,DejaVu Sans,39,&H00FFFFFF,&H000000FF,&H004B1545,&H950A0622,1,0,0,0,100,100,0,0,1,3,1,2,55,55,270,1
+Style: Brand,DejaVu Sans,31,&H00FFE829,&H000000FF,&H00300B25,&H00000000,1,0,0,0,100,100,0,0,1,2,0,8,30,30,70,1
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
