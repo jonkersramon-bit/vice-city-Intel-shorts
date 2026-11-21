@@ -43,6 +43,13 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg fonts-dejavu-core
           python -m pip install --disable-pip-version-check edge-tts pillow
+      - name: Restore reusable licensed photo library
+        uses: actions/cache@v4
+        with:
+          path: photo_library
+          key: vci-photos-${{ runner.os }}-${{ hashFiles('photo_library/**/credits.txt') }}-${{ github.run_id }}
+          restore-keys: |
+            vci-photos-${{ runner.os }}-
       - name: Validate Python script
         run: python -m py_compile make_short.py
       - name: Generate narration and video
@@ -76,5 +83,6 @@ jobs:
             output/scene_review.jpg
             output/youtube.txt
             output/GAMEPLAY_CREDIT.txt
+            output/IMAGE_CREDITS.txt
           if-no-files-found: ignore
           retention-days: 7
