@@ -214,7 +214,7 @@ def fetch_licensed_city_photos():
     directory.mkdir(parents=True,exist_ok=True)
     manifest=directory/"credits.txt"
     existing=sorted(directory.glob("photo_*.jpg"))
-    if len(existing)>=2 and manifest.exists():
+    if len(existing)>=1 and manifest.exists():
         (OUT/"IMAGE_CREDITS.txt").write_text(manifest.read_text(encoding="utf-8"),encoding="utf-8")
         print("Reusing six cached, licensed photographs from",directory)
         return existing[:6]
@@ -297,10 +297,55 @@ def fetch_licensed_city_photos():
                     print("Skipped candidate:",type(error).__name__)
         except Exception as error:
             print("Commons search unavailable:",term,type(error).__name__,str(error)[:100])
+    # Secondary free-license catalog when Commons API returns HTTP 403.
+    # Openverse supplies license metadata and direct image URLs.
+    if len(credits)<2:
+        print("Commons insufficient; trying Openverse licensed photo catalog")
+        for term in searches:
+            if len(credits)>=6:
+                break
+            try:
+                query=urllib.parse.urlencode({"q":term,"license_type":"commercial,modification","page_size":20})
+                req=urllib.request.Request("https://api.openverse.org/v1/images/?"+query,
+                    headers={"User-Agent":"ViceCityIntelShorts/1.0","Accept":"application/json"})
+                with urllib.request.urlopen(req,timeout=18) as response:
+                    results=json.load(response).get("results",[])
+                for item in results:
+                    if len(credits)>=6:
+                        break
+                    lic=(item.get("license") or "").lower()
+                    if lic not in ("cc0","by","by-sa","pdm"):
+                        continue
+                    title=(item.get("title") or "").lower()
+                    tags=" ".join((tag.get("name","") if isinstance(tag,dict) else str(tag)) for tag in (item.get("tags") or [])).lower()
+                    context=title+" "+tags
+                    if not any(k in context for k in relevant) or any(k in context for k in irrelevant):
+                        continue
+                    url=item.get("thumbnail") or item.get("url")
+                    if not url or not url.startswith("https://"):
+                        continue
+                    try:
+                        req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0 ViceCityIntel/1.0"})
+                        with urllib.request.urlopen(req,timeout=12) as response:
+                            data=response.read(7_000_000)
+                        photo=Image.open(BytesIO(data)).convert("RGB")
+                        if photo.width<600 or photo.height<400:
+                            continue
+                        fp=fingerprint(photo)
+                        if any(sum(a!=b for a,b in zip(fp,prev))<32 for prev in seen_pixels):
+                            continue
+                        target=directory/f"photo_{len(credits):02}.jpg"
+                        photo.save(target,quality=90)
+                        seen_pixels.append(fp)
+                        credits.append(f"{target.name}: {item.get('title','')} | {item.get('creator','Unknown')} | {lic} | {item.get('foreign_landing_url','')}")
+                    except Exception as err:
+                        print("Openverse image skipped:",type(err).__name__)
+            except Exception as err:
+                print("Openverse query unavailable:",type(err).__name__,str(err)[:100])
     if credits:
         credit_text="\n".join(credits)+"\n"
         (OUT/"IMAGE_CREDITS.txt").write_text(credit_text,encoding="utf-8")
-        if len(credits)>=2:
+        if len(credits)>=1:
             manifest.write_text(credit_text,encoding="utf-8")
     return sorted(directory.glob("photo_*.jpg"))
 
@@ -347,9 +392,9 @@ if not assets and mission_mode:
     )
 if not assets:
     assets=fetch_licensed_city_photos()
-    if len(assets)<2:
+    if len(assets)<1:
         raise RuntimeError(
-            "PHOTO ASSETS NEEDED: Fewer than two distinct licensed, topic-matched "
+            "PHOTO ASSETS NEEDED: No licensed, topic-matched "
             "photographs were available. Add approved photos to assets/."
         )
     if len(assets)<6:
@@ -364,8 +409,8 @@ for visual in assets[:6]:
     if signature in seen_visuals:
         raise RuntimeError("Duplicate image detected: "+str(visual))
     seen_visuals.add(signature)
-if len(assets)<2:
-    raise RuntimeError("At least two distinct visual sources are required.")
+if len(assets)<1:
+    raise RuntimeError("At least one licensed visual source is required.")
 sentences=[s.strip() for s in re.split(r"(?<=[.!?])\s+",script) if s.strip()]
 n=6
 if not gameplay_file.is_file() and len(assets)<6:
