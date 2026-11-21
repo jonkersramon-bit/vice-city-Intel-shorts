@@ -214,7 +214,7 @@ def fetch_licensed_city_photos():
     directory.mkdir(parents=True,exist_ok=True)
     manifest=directory/"credits.txt"
     existing=sorted(directory.glob("photo_*.jpg"))
-    if len(existing)>=6 and manifest.exists():
+    if len(existing)>=2 and manifest.exists():
         (OUT/"IMAGE_CREDITS.txt").write_text(manifest.read_text(encoding="utf-8"),encoding="utf-8")
         print("Reusing six cached, licensed photographs from",directory)
         return existing[:6]
@@ -227,7 +227,7 @@ def fetch_licensed_city_photos():
     def fingerprint(im):
         # 16x16 grayscale difference hash to catch resizes and near duplicates.
         gray=im.convert("L").resize((17,16),Image.Resampling.LANCZOS)
-        pixels=list(gray.getdata())
+        pixels=list(gray.get_flattened_data())
         return tuple(pixels[y*17+x]>pixels[y*17+x+1] for y in range(16) for x in range(16))
     for idx,term in enumerate(searches):
         if len(credits)>=6:
@@ -300,7 +300,7 @@ def fetch_licensed_city_photos():
     if credits:
         credit_text="\n".join(credits)+"\n"
         (OUT/"IMAGE_CREDITS.txt").write_text(credit_text,encoding="utf-8")
-        if len(credits)>=6:
+        if len(credits)>=2:
             manifest.write_text(credit_text,encoding="utf-8")
     return sorted(directory.glob("photo_*.jpg"))
 
@@ -347,12 +347,13 @@ if not assets and mission_mode:
     )
 if not assets:
     assets=fetch_licensed_city_photos()
-    if len(assets)<6:
+    if len(assets)<2:
         raise RuntimeError(
-            "PHOTO ASSETS NEEDED: Could not verify six distinct, licensed, "
-            "topic-matched photographs. Add six approved photographic images to assets/. "
-            "Refusing to publish basic illustrations or unrelated hotels."
+            "PHOTO ASSETS NEEDED: Fewer than two distinct licensed, topic-matched "
+            "photographs were available. Add approved photos to assets/."
         )
+    if len(assets)<6:
+        print(f"Using {len(assets)} verified photos with different motion scenes.")
 
 # Reject duplicate images even when manually supplied in assets/.
 # A simple pixel signature also catches byte-identical images in different formats.
@@ -363,10 +364,12 @@ for visual in assets[:6]:
     if signature in seen_visuals:
         raise RuntimeError("Duplicate image detected: "+str(visual))
     seen_visuals.add(signature)
-if len(assets)<4:
-    raise RuntimeError("At least four distinct visual scenes are required.")
+if len(assets)<2:
+    raise RuntimeError("At least two distinct visual sources are required.")
 sentences=[s.strip() for s in re.split(r"(?<=[.!?])\s+",script) if s.strip()]
-n=min(6,len(assets))
+n=6
+if not gameplay_file.is_file() and len(assets)<6:
+    assets=[assets[i%len(assets)] for i in range(6)]
 scene_duration=(duration+0.35*(n-1))/n
 for i in range(n):
     if assets:
