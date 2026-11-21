@@ -206,13 +206,24 @@ def fetch_licensed_city_photos():
                "topographic","google earth","nude","nudity","naked","beachgoers",
                "newspaper","new york times","magazine","archive","pdf","scanned","scan",
                "document","manuscript","book page","journal","article","text page","facsimile")
-    directory=ROOT/"downloaded_photos"
-    directory.mkdir(exist_ok=True)
-    for old in directory.glob("photo_*.jpg"):
-        old.unlink()
+    # Persist reviewed, licensed downloads between GitHub Actions runs.
+    # Cache key is topic-specific, so a PC Short never inherits car photos.
+    import hashlib
+    cache_id=hashlib.sha256((" ".join(searches)).encode()).hexdigest()[:16]
+    directory=ROOT/"photo_library"/cache_id
+    directory.mkdir(parents=True,exist_ok=True)
+    manifest=directory/"credits.txt"
+    existing=sorted(directory.glob("photo_*.jpg"))
+    if len(existing)>=6 and manifest.exists():
+        (OUT/"IMAGE_CREDITS.txt").write_text(manifest.read_text(encoding="utf-8"),encoding="utf-8")
+        print("Reusing six cached, licensed photographs from",directory)
+        return existing[:6]
     seen_hashes=set()
     seen_pixels=[]
     credits=[]
+    # Do not trust incomplete cached sets: rebuild to avoid mixed provenance.
+    for old in directory.glob("photo_*.jpg"):
+        old.unlink()
     def fingerprint(im):
         # 16x16 grayscale difference hash to catch resizes and near duplicates.
         gray=im.convert("L").resize((17,16),Image.Resampling.LANCZOS)
@@ -287,7 +298,10 @@ def fetch_licensed_city_photos():
         except Exception as error:
             print("Commons search unavailable:",term,type(error).__name__,str(error)[:100])
     if credits:
-        (OUT/"IMAGE_CREDITS.txt").write_text("\n".join(credits)+"\n",encoding="utf-8")
+        credit_text="\n".join(credits)+"\n"
+        (OUT/"IMAGE_CREDITS.txt").write_text(credit_text,encoding="utf-8")
+        if len(credits)>=6:
+            manifest.write_text(credit_text,encoding="utf-8")
     return sorted(directory.glob("photo_*.jpg"))
 
 # Extract six representative frames from creator-owned or explicitly licensed gameplay.
