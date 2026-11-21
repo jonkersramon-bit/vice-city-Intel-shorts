@@ -112,30 +112,41 @@ def draw_procedural(i):
 
 
 def draw_mission_diagram(im,i):
-    """Original illustrative mission visuals, not actual gameplay screenshots."""
+    """Clean original neon artwork: NO text baked into the image.
+    Voiceover captions and channel brand are drawn separately in safe areas.
+    """
     d=ImageDraw.Draw(im,"RGBA")
-    cyan=(34,235,255,255); pink=(255,56,182,255)
-    labels=[("MISSION GUIDE","FIND THE ROUTE"),("SIDE ENTRANCE","CHECK THE PERIMETER"),("ROOFTOP ACCESS","LOOK FOR A WAY UP"),("FIND THE CAR","CHECK THE OBJECTIVE"),("VEHICLE ACCESS","FOLLOW THE PROMPT"),("ESCAPE ROUTE","GET AWAY SAFELY")]
-    title,subtitle=labels[i%len(labels)]
-    d.rounded_rectangle((45,330,675,790),radius=25,fill=(8,8,29,225),outline=pink if i%2 else cyan,width=5)
-    d.text((360,392),title,font=font,anchor="mm",fill="white")
-    d.text((360,744),subtitle,font=fontsmall,anchor="mm",fill=cyan)
+    cyan=(34,235,255,230)
+    pink=(255,56,182,235)
+    # Restrict artwork to the central area; subtitles occupy the lower section.
+    d.rounded_rectangle((68,330,652,820),radius=38,
+                        fill=(8,8,29,160),outline=cyan if i%2==0 else pink,width=5)
     if i%3==0:
-        d.rounded_rectangle((172,550,550,650),radius=25,fill=(30,30,76,255),outline=pink,width=6)
-        d.polygon([(245,550),(290,495),(432,495),(485,550)],fill=(16,44,79,255))
-        for x in (245,475):
-            d.ellipse((x-38,623,x+38,699),fill=(10,9,25,255),outline=cyan,width=5)
+        # A recognizable stylized vehicle, no labels or false gameplay claims.
+        d.polygon([(170,600),(235,530),(465,530),(545,600)],fill=(21,60,105,255))
+        d.rounded_rectangle((135,590,585,700),radius=25,
+                            fill=(22,25,65,255),outline=pink,width=8)
+        for x in (245,480):
+            d.ellipse((x-42,665,x+42,749),fill=(8,8,25,255),outline=cyan,width=8)
+        d.line((190,615,525,615),fill=cyan,width=4)
     elif i%3==1:
-        for x in range(190,550,40):d.line([(x,510),(x,675)],fill=cyan,width=6)
-        for y in (510,675):d.line([(180,y),(555,y)],fill=pink,width=8)
-        d.line([(220,700),(440,700),(440,610)],fill="white",width=10)
-        d.polygon([(440,597),(423,623),(457,623)],fill=pink)
+        # Night road / intersection.
+        d.polygon([(280,400),(440,400),(580,800),(140,800)],fill=(20,23,60,235))
+        for y in (500,590,690):
+            d.line((355,y,365,y+45),fill=pink,width=10)
+        for x in (160,560):
+            d.line((x,460,x,735),fill=cyan,width=7)
+        d.polygon([(360,440),(340,470),(380,470)],fill=pink)
     else:
-        d.rectangle((185,505,540,540),fill=pink)
-        for x in (290,365):d.line([(x,540),(x,690)],fill=cyan,width=9)
-        for y in range(560,690,26):d.line([(290,y),(365,y)],fill="white",width=6)
-        d.line([(405,672),(493,575)],fill=pink,width=11)
-        d.polygon([(499,568),(470,581),(492,602)],fill=pink)
+        # Parking / garage scene.
+        for x in (195,345,495):
+            d.rounded_rectangle((x-38,470,x+38,690),radius=8,
+                                fill=(17,37,70,255),outline=cyan,width=6)
+        d.line((140,715,580,715),fill=pink,width=10)
+        d.rounded_rectangle((265,635,475,700),radius=15,
+                            fill=(36,33,82,255),outline=pink,width=6)
+        for x in (310,430):
+            d.ellipse((x-22,686,x+22,730),fill=(8,8,25,255),outline=cyan,width=5)
     return im
 
 
