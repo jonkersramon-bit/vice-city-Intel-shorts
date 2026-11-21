@@ -209,14 +209,14 @@ def fetch_licensed_city_photos():
     # Persist reviewed, licensed downloads between GitHub Actions runs.
     # Cache key is topic-specific, so a PC Short never inherits car photos.
     import hashlib
-    cache_id=hashlib.sha256((" ".join(searches)).encode()).hexdigest()[:16]
+    cache_id=hashlib.sha256(("v2-night-color-modern "+" ".join(searches)).encode()).hexdigest()[:16]
     directory=ROOT/"photo_library"/cache_id
     directory.mkdir(parents=True,exist_ok=True)
     manifest=directory/"credits.txt"
     existing=sorted(directory.glob("photo_*.jpg"))
     if len(existing)>=1 and manifest.exists():
         (OUT/"IMAGE_CREDITS.txt").write_text(manifest.read_text(encoding="utf-8"),encoding="utf-8")
-        print("Reusing six cached, licensed photographs from",directory)
+        print("Reusing licensed cinematic photographs from",directory)
         return existing[:6]
     seen_hashes=set()
     seen_pixels=[]
@@ -224,6 +224,22 @@ def fetch_licensed_city_photos():
     # Do not trust incomplete cached sets: rebuild to avoid mixed provenance.
     for old in directory.glob("photo_*.jpg"):
         old.unlink()
+    def cinematic_photo(im, metadata):
+        """Reject archival monochrome/daylight photos without relying on captions alone."""
+        info=metadata.lower()
+        blocked=("black and white","black-and-white","monochrome","historic","historical",
+                 "archive photo","vintage","old photograph","sepia","1950","1960",
+                 "1970","1980","1990","daytime","daylight","sunny","morning","noon")
+        if any(word in info for word in blocked):
+            return False
+        sample=im.convert("RGB").resize((96,96),Image.Resampling.BILINEAR)
+        pixels=list(sample.get_flattened_data())
+        avg=sum(max(rgb) for rgb in pixels)/len(pixels)
+        saturation=sum(max(rgb)-min(rgb) for rgb in pixels)/len(pixels)
+        # White/gray historical photographs have little chroma; bright daytime photos
+        # tend to have a high average channel value.
+        return saturation>=19 and avg<=205
+
     def fingerprint(im):
         # 16x16 grayscale difference hash to catch resizes and near duplicates.
         gray=im.convert("L").resize((17,16),Image.Resampling.LANCZOS)
@@ -282,6 +298,8 @@ def fetch_licensed_city_photos():
                     photo=Image.open(BytesIO(data)).convert("RGB")
                     if photo.width<650 or photo.height<400:
                         continue
+                    if not cinematic_photo(photo, page.get("title","")+" "+re.sub("<[^>]+>"," ",info.get("extmetadata",{}).get("ImageDescription",{}).get("value",""))):
+                        continue
                     fp=fingerprint(photo)
                     if any(sum(a!=b for a,b in zip(fp,prev))<32 for prev in seen_pixels):
                         continue
@@ -330,6 +348,8 @@ def fetch_licensed_city_photos():
                             data=response.read(7_000_000)
                         photo=Image.open(BytesIO(data)).convert("RGB")
                         if photo.width<600 or photo.height<400:
+                            continue
+                        if not cinematic_photo(photo, context):
                             continue
                         fp=fingerprint(photo)
                         if any(sum(a!=b for a,b in zip(fp,prev))<32 for prev in seen_pixels):
